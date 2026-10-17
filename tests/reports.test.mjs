@@ -64,6 +64,7 @@ const {
   buildSummary,
   photoFile,
   downloadReport,
+  retargetSummary,
 } = await import("../src/data.ts");
 
 test("upgrade preserves photos as independent reports and keeps original records intact", async () => {
@@ -136,6 +137,58 @@ test("photo attachment contains the image bytes and rejects unsafe image URLs", 
   assert.equal(file.name, "accesslens-photo.jpg");
   assert.equal(await file.text(), "a");
   assert.equal(photoFile({ image: "javascript:alert(1)" }), null);
+});
+test("new report includes saved name and reply contact without changing old drafts", async () => {
+  const sender = { name: "Sam Student", email: "sam@example.com" };
+  const summary = buildSummary(
+    "Blocked curb ramp",
+    "Library",
+    "Bins block it.",
+    undefined,
+    "Test Member",
+    sender,
+  );
+  assert.ok(summary.endsWith("Thank you.\n\nSam Student\nsam@example.com"));
+  assert.equal((summary.match(/sam@example.com/g) || []).length, 1);
+  assert.doesNotMatch(
+    buildSummary("Other", "Park", ""),
+    /undefined|sam@example.com/,
+  );
+  await saveReport({
+    id: "signature-test",
+    category: "Other",
+    note: "",
+    place: "Library",
+    image: "",
+    created: new Date().toISOString(),
+    summary,
+    sender: { ...sender },
+    status: "Draft",
+  });
+  sender.name = "Changed Later";
+  const saved = (await loadReports()).find((r) => r.id === "signature-test");
+  assert.equal(saved.sender.name, "Sam Student");
+  assert.ok(saved.summary.endsWith("Sam Student\nsam@example.com"));
+});
+test("changing representative updates only the generated greeting and preserves edits and signature", () => {
+  const edited =
+    "Hello Representative Old Member,\n\nMy edited text.\n\nSam\nsam@example.com";
+  assert.equal(
+    retargetSummary(edited, "Old Member", "New Member"),
+    "Hello Representative New Member,\n\nMy edited text.\n\nSam\nsam@example.com",
+  );
+  assert.equal(
+    retargetSummary("Hello,\n\nMy text.", undefined, "New Member"),
+    "Hello Representative New Member,\n\nMy text.",
+  );
+  assert.equal(
+    retargetSummary(
+      "Dear community team,\nMy personal draft.",
+      "Old Member",
+      "New Member",
+    ),
+    "Dear community team,\nMy personal draft.",
+  );
 });
 test("download embeds the photo and escapes user text", async () => {
   const originalURL = URL.createObjectURL;

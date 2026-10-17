@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Camera,
   Check,
-  CheckCheck,
   ChevronRight,
   Copy,
   Crosshair,
@@ -21,10 +20,10 @@ import {
   Home,
   ImagePlus,
   MapPin,
+  Mail,
   ScanLine,
   Send,
   Settings2,
-  Share2,
   ShieldCheck,
   Sparkles,
   Trash2,
@@ -39,10 +38,17 @@ import {
   downloadReport,
   loadReports,
   photoFile,
+  retargetSummary,
   saveReport,
   type Area,
   type BarrierReport,
 } from "./data";
+import {
+  normalizeProfile,
+  PROFILE_KEY,
+  validEmail,
+  type SenderProfile,
+} from "./profile";
 
 type View =
   | "onboard"
@@ -369,9 +375,17 @@ function AreaPicker({
 }
 
 export default function App() {
+  const [profile, setProfile] = useState<SenderProfile>(() =>
+    normalizeProfile(readPreference(PROFILE_KEY, null)),
+  );
+  const [contactDraft, setContactDraft] = useState<SenderProfile>(profile);
+  const [profileModal, setProfileModal] = useState(false);
+  const [confirmation, setConfirmation] = useState<"report" | "contact" | null>(
+    null,
+  );
   const [area, setArea] = useState<Area | null>(readArea);
   const [view, setView] = useState<View>(() =>
-    readPreference("accesslens-onboarding-v2", false) ? "home" : "onboard",
+    readPreference("accesslens-onboarding-v3", false) ? "home" : "onboard",
   );
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -430,12 +444,38 @@ export default function App() {
   }
   function finishOnboarding(openCamera = false) {
     try {
-      localStorage.setItem("accesslens-onboarding-v2", "true");
+      localStorage.setItem("accesslens-onboarding-v3", "true");
     } catch {
       /* Onboarding may repeat in restricted browsing. */
     }
     if (openCamera) newReport();
     else setView("home");
+  }
+  function rememberProfile(value: SenderProfile) {
+    const next = normalizeProfile(value);
+    setProfile(next);
+    setContactDraft(next);
+    try {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+    } catch {
+      setToast("Contact details saved for this visit only.");
+    }
+  }
+  function nextContactStep(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const input = event.currentTarget.querySelector("input");
+    if (step === 1 && !contactDraft.name.trim()) {
+      input?.setCustomValidity("What name would you like to sign with?");
+      input?.reportValidity();
+      return;
+    }
+    if (step === 2 && !validEmail(contactDraft.email.trim())) {
+      input?.setCustomValidity("Enter an email address like you@example.com.");
+      input?.reportValidity();
+      return;
+    }
+    rememberProfile(contactDraft);
+    moveStep(step + 1);
   }
   function moveStep(next: number) {
     setDirection(next > step ? 1 : -1);
@@ -602,12 +642,14 @@ export default function App() {
       image,
       created: current?.created || new Date().toISOString(),
       recipient: reportArea || undefined,
+      sender: { ...profile },
       summary: buildSummary(
         label,
         place.trim(),
         note,
         coordinates,
         reportArea?.representative,
+        profile,
       ),
       status: "Draft",
     };
@@ -696,13 +738,8 @@ export default function App() {
     }
   }
   async function removeCurrent() {
-    if (
-      !current ||
-      !window.confirm(
-        "Delete this report and photo from this device? Download a copy first if you want to keep it.",
-      )
-    )
-      return;
+    if (!current) return;
+    setConfirmation(null);
     try {
       await deleteReport(current.id);
       setReports((items) => items.filter((item) => item.id !== current.id));
@@ -768,7 +805,7 @@ export default function App() {
               className="onboarding-progress"
               aria-label="Onboarding progress"
             >
-              {["Capture", "Your area", "Representative", "Ready"].map(
+              {["Hello", "Your name", "Your email", "Your area", "All set"].map(
                 (label, index) => (
                   <button
                     key={label}
@@ -791,17 +828,17 @@ export default function App() {
                 <>
                   <div className="onboard-copy">
                     <span className="eyebrow">
-                      A LITTLE AWARENESS. A REAL DIFFERENCE.
+                      A LITTLE PHOTO. A BETTER EVERYDAY.
                     </span>
                     <h1 ref={heading} tabIndex={-1}>
-                      Every place.
+                      Good change
                       <br />
-                      <span>For everyone.</span>
+                      <span>starts with you.</span>
                     </h1>
                     <p>
-                      See something that makes a place hard to access? Snap a
-                      photo. We’ll help you turn it into a short report for your
-                      representative.
+                      A blocked ramp. A tricky entrance. Notice it, snap it, and
+                      give your representative something they can act on. Let’s
+                      make this yours first.
                     </p>
                   </div>
                   <ScanDemo />
@@ -821,7 +858,113 @@ export default function App() {
               {step === 1 && (
                 <>
                   <div className="onboard-copy">
-                    <span className="eyebrow">02 / YOUR AREA</span>
+                    <span className="eyebrow">FIRST, A PROPER HELLO</span>
+                    <h1 ref={heading} tabIndex={-1}>
+                      What should
+                      <br />
+                      <span>we call you?</span>
+                    </h1>
+                    <p>Your voice matters. Let’s put a name to it.</p>
+                  </div>
+                  <form
+                    id="onboarding-contact"
+                    className="contact-card"
+                    onSubmit={nextContactStep}
+                  >
+                    <div className="hello-sticker" aria-hidden="true">
+                      <span>hello, I’m</span>
+                      <b>{contactDraft.name.trim().split(/\s+/)[0] || "you"}</b>
+                      <Sparkles size={20} />
+                    </div>
+                    <label htmlFor="onboarding-name">Your name</label>
+                    <input
+                      id="onboarding-name"
+                      name="name"
+                      autoComplete="name"
+                      enterKeyHint="next"
+                      placeholder="The name you sign with"
+                      value={contactDraft.name}
+                      required
+                      maxLength={80}
+                      onChange={(event) => {
+                        event.target.setCustomValidity("");
+                        setContactDraft({
+                          ...contactDraft,
+                          name: event.target.value,
+                        });
+                      }}
+                    />
+                    <p className="contact-hint">
+                      We’ll sign your reports with this. You can change it
+                      anytime.
+                    </p>
+                  </form>
+                </>
+              )}
+              {step === 2 && (
+                <>
+                  <div className="onboard-copy">
+                    <span className="eyebrow">A WAY TO GET BACK TO YOU</span>
+                    <h1 ref={heading} tabIndex={-1}>
+                      And your
+                      <br />
+                      <span>email address?</span>
+                    </h1>
+                    <p>
+                      So an office knows where to reply. Enter an inbox you use.
+                    </p>
+                  </div>
+                  <form
+                    id="onboarding-contact"
+                    className="contact-card"
+                    onSubmit={nextContactStep}
+                  >
+                    <div className="mail-art" aria-hidden="true">
+                      <span className="mail-note">
+                        <span />
+                        <span />
+                        <b>
+                          {contactDraft.name.trim().split(/\s+/)[0] ||
+                            "Your voice"}
+                          <i>↗</i>
+                        </b>
+                      </span>
+                      <Mail size={85} strokeWidth={1.1} />
+                      <span className="mail-spark">✳</span>
+                    </div>
+                    <label htmlFor="onboarding-email">Your email</label>
+                    <input
+                      id="onboarding-email"
+                      name="email"
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      enterKeyHint="next"
+                      placeholder="you@example.com"
+                      required
+                      maxLength={254}
+                      value={contactDraft.email}
+                      onChange={(event) => {
+                        event.target.setCustomValidity("");
+                        setContactDraft({
+                          ...contactDraft,
+                          email: event.target.value,
+                        });
+                      }}
+                    />
+                    <p className="contact-hint">
+                      Included in your report, not added to a mailing list. This
+                      does not connect or verify your inbox.
+                    </p>
+                  </form>
+                </>
+              )}
+              {step === 3 && (
+                <>
+                  <div className="onboard-copy">
+                    <span className="eyebrow">MAKE IT LOCAL</span>
                     <h1 ref={heading} tabIndex={-1}>
                       Start with
                       <br />
@@ -847,27 +990,48 @@ export default function App() {
                       initial={area}
                       onChoose={(next) => {
                         rememberArea(next);
-                        moveStep(2);
+                        moveStep(4);
                       }}
                     />
                   </div>
                 </>
               )}
-              {step === 2 && (
+              {step === 4 && (
                 <>
                   <div className="onboard-copy">
-                    <span className="eyebrow">03 / YOUR REPRESENTATIVE</span>
+                    <span className="eyebrow">
+                      YOU’RE IN. LET’S MAKE A DIFFERENCE.
+                    </span>
                     <h1 ref={heading} tabIndex={-1}>
-                      A direct line.
+                      {profile.name
+                        ? `All set, ${profile.name.split(/\s+/)[0]}.`
+                        : "You’re all set."}
                       <br />
-                      <span>A place to start.</span>
+                      <span>See it. Snap it. Send it.</span>
                     </h1>
                     <p>
-                      Your photo and report can help an office understand the
-                      issue—and point you toward the people responsible.
+                      Your name and email will sign new reports automatically.
+                      Add a photo and a place, review the message, then tap Send
+                      report.
                     </p>
                   </div>
                   <div className="onboard-card rep-onboard">
+                    <div className="signature-preview">
+                      <span className="signature-icon">
+                        <Send size={20} />
+                      </span>
+                      <div>
+                        <small>YOUR REPORTS, SIGNED</small>
+                        <b>{profile.name || "Your name — add in Settings"}</b>
+                        <span>{profile.email || "Email not added"}</span>
+                      </div>
+                      <button
+                        className="text-button"
+                        onClick={() => moveStep(1)}
+                      >
+                        Edit
+                      </button>
+                    </div>
                     <Representative area={area} />
                     {area?.representative ? (
                       <>
@@ -886,7 +1050,7 @@ export default function App() {
                         </p>
                         <button
                           className="text-button"
-                          onClick={() => moveStep(1)}
+                          onClick={() => moveStep(3)}
                         >
                           Change area <ArrowRight size={14} />
                         </button>
@@ -900,7 +1064,7 @@ export default function App() {
                         </p>
                         <button
                           className="button-secondary full"
-                          onClick={() => moveStep(1)}
+                          onClick={() => moveStep(3)}
                         >
                           Find my representative <Crosshair size={16} />
                         </button>
@@ -910,44 +1074,10 @@ export default function App() {
                       </>
                     )}
                   </div>
-                </>
-              )}
-              {step === 3 && (
-                <>
-                  <div className="onboard-copy">
-                    <span className="eyebrow">04 / YOU’RE READY</span>
-                    <h1 ref={heading} tabIndex={-1}>
-                      Your perspective.
-                      <br />
-                      <span>Ready to be heard.</span>
-                    </h1>
-                    <p>
-                      Take a photo, confirm the place, and review your brief
-                      report. Then share the photo and report through your phone
-                      or use an official contact page.
-                    </p>
-                  </div>
-                  <div className="onboard-card ready-card">
-                    <span className="ready-check">
-                      <CheckCheck size={28} />
-                    </span>
-                    <div className="ready-report">
-                      <span className="micro-label">EXAMPLE REPORT</span>
-                      <b>Obstructed pathway</b>
-                      <p>
-                        At the library entrance, bins are blocking the path.
-                        Could your office review this or direct me to the team
-                        responsible?
-                      </p>
-                      <span>
-                        <ImagePlus size={13} /> Photo attached <span>·</span>{" "}
-                        Location included
-                      </span>
-                    </div>
-                  </div>
                   <p className="onboard-assurance">
-                    <ShieldCheck size={14} /> Review first. Share when you’re
-                    ready. Nothing sends automatically.
+                    Send opens your phone’s sharing menu. Choose Mail and use an
+                    account already signed in there. Your saved email is contact
+                    info, not an inbox connection.
                   </p>
                 </>
               )}
@@ -962,21 +1092,26 @@ export default function App() {
                 <span>Back</span>
               </button>
               <span className="step-counter">
-                {step + 1} <span>/ 4</span>
+                {step + 1} <span>/ 5</span>
               </span>
               <button
                 className="button-primary"
-                onClick={() =>
-                  step === 3 ? finishOnboarding(true) : moveStep(step + 1)
+                type={step === 1 || step === 2 ? "submit" : "button"}
+                form={
+                  step === 1 || step === 2 ? "onboarding-contact" : undefined
                 }
+                onClick={(event) => {
+                  if (step === 1 || step === 2) return;
+                  event.preventDefault();
+                  if (step === 4) finishOnboarding();
+                  else moveStep(step + 1);
+                }}
               >
                 {step === 0
                   ? "Get started"
-                  : step === 2 && area?.representative
-                    ? "Confirm representative"
-                    : step === 3
-                      ? "Take my first photo"
-                      : "Continue"}
+                  : step === 4
+                    ? "Let’s go"
+                    : "Continue"}
                 <ArrowRight size={17} />
               </button>
             </div>
@@ -986,6 +1121,12 @@ export default function App() {
         {view === "home" && (
           <section className="home-view">
             <div className="home-intro">
+              <div className="greeting-pill">
+                <span className="greeting-dot" />
+                {profile.name
+                  ? `Hey, ${profile.name.split(/\s+/)[0]}. Good to see you.`
+                  : "A little attention goes a long way."}
+              </div>
               <button
                 className="location-pill"
                 onClick={() => setAreaModal("profile")}
@@ -995,9 +1136,9 @@ export default function App() {
                 <ChevronRight size={12} />
               </button>
               <h1 ref={heading} tabIndex={-1}>
-                See a barrier.
+                Small photo.
                 <br />
-                <span>Make it visible.</span>
+                <span>Big possibility.</span>
               </h1>
               <p>
                 One photo. A short report.
@@ -1006,19 +1147,30 @@ export default function App() {
             </div>
             <div className="home-capture">
               <div className="camera-orbit" aria-hidden="true">
+                <span className="orbit-spark">✳</span>
+                <span className="orbit-note">
+                  <span>
+                    LET’S MAKE
+                    <br />
+                    ROOM FOR
+                    <br />
+                    <b>everyone.</b>
+                  </span>
+                  <ArrowRight size={19} />
+                </span>
                 <span className="orbit-ring one" />
                 <span className="orbit-ring two" />
                 <span className="camera-disc">
                   <Camera size={43} strokeWidth={1.2} />
                 </span>
                 <span className="floating-tag photo-tag">
-                  <Check size={12} /> Photo
+                  <Check size={12} /> Notice something?
                 </span>
                 <span className="floating-tag location-tag">
-                  <MapPin size={12} /> Place
+                  <MapPin size={12} /> Right here
                 </span>
                 <span className="floating-tag report-tag">
-                  <FileText size={12} /> Report
+                  <FileText size={12} /> Your voice counts
                 </span>
               </div>
               <button
@@ -1396,17 +1548,31 @@ export default function App() {
                   <ArrowRight size={14} />
                 </button>
                 <div className="send-divider" />
+                <div className="sender-card">
+                  <span className="signature-icon">
+                    <UserRound size={18} />
+                  </span>
+                  <div>
+                    <small>SIGNED BY</small>
+                    <b>{current.sender?.name || "No signature added"}</b>
+                    <span>
+                      {current.sender?.email ||
+                        "You can add contact details in the report text."}
+                    </span>
+                  </div>
+                </div>
                 <button
                   className="button-primary full share-button"
                   onClick={() => void share()}
                   disabled={sharing || !summary.trim()}
                 >
-                  <Share2 size={18} />
-                  {sharing ? "Opening share sheet…" : "Share photo + report"}
+                  <Send size={18} />
+                  {sharing ? "Opening share sheet…" : "Send report"}
                 </button>
                 <p className="share-explainer">
-                  Choose Mail or another app on your phone. Your photo and
-                  report go together. Complete sending in that app.
+                  Opens sharing with your photo, report, and signature. Choose
+                  Mail and address it using the official contact options below.
+                  Your saved email doesn’t sign you into Mail.
                 </p>
                 <a
                   className="button-secondary full"
@@ -1478,7 +1644,7 @@ export default function App() {
                 </button>
                 <button
                   className="text-button delete-link"
-                  onClick={() => void removeCurrent()}
+                  onClick={() => setConfirmation("report")}
                 >
                   <Trash2 size={13} /> Delete report
                 </button>
@@ -1560,7 +1726,27 @@ export default function App() {
               <h1 ref={heading} tabIndex={-1}>
                 A few essentials.
               </h1>
-              <p>Your area, your representative, your privacy.</p>
+              <p>Your details, your neighborhood, your voice.</p>
+            </div>
+            <div className="settings-group">
+              <button
+                onClick={() => {
+                  setError("");
+                  setContactDraft(profile);
+                  setProfileModal(true);
+                }}
+              >
+                <span className="settings-icon">
+                  <UserRound size={21} />
+                </span>
+                <span>
+                  <b>{profile.name || "Your name & email"}</b>
+                  <small>
+                    {profile.email || "Set up your report signature"}
+                  </small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
             </div>
             <div className="settings-group">
               <button onClick={() => setAreaModal("profile")}>
@@ -1580,6 +1766,7 @@ export default function App() {
             <div className="settings-group">
               <button
                 onClick={() => {
+                  setContactDraft(profile);
                   setStep(0);
                   setView("onboard");
                 }}
@@ -1589,7 +1776,7 @@ export default function App() {
                 </span>
                 <span>
                   <b>Take the tour again</b>
-                  <small>Four steps from photo to report</small>
+                  <small>Five quick steps to make it yours</small>
                 </span>
                 <ChevronRight size={18} />
               </button>
@@ -1629,8 +1816,8 @@ export default function App() {
             onClick={() => void share()}
             disabled={sharing || !summary.trim()}
           >
-            <Share2 size={17} />
-            {sharing ? "Opening…" : "Share report"}
+            <Send size={17} />
+            {sharing ? "Opening…" : "Send report"}
           </button>
         </div>
       )}
@@ -1687,22 +1874,13 @@ export default function App() {
                 setReportArea(next);
                 if (current) {
                   const updated = { ...current, summary, recipient: next };
-                  if (
-                    summary === current.summary &&
-                    !current.summary.startsWith(
-                      `Hello Representative ${next.representative},`,
-                    )
-                  ) {
-                    const text = buildSummary(
-                      current.category,
-                      current.place,
-                      current.note,
-                      current.coordinates,
-                      next.representative,
-                    );
-                    setSummary(text);
-                    updated.summary = text;
-                  }
+                  const text = retargetSummary(
+                    summary,
+                    current.recipient?.representative,
+                    next.representative,
+                  );
+                  setSummary(text);
+                  updated.summary = text;
                   setCurrent(updated);
                   void persist(updated);
                 }
@@ -1713,12 +1891,149 @@ export default function App() {
           />
         </Modal>
       )}
+      {profileModal && (
+        <Modal
+          title="Your report signature"
+          onClose={() => {
+            setContactDraft(profile);
+            setProfileModal(false);
+            setError("");
+          }}
+        >
+          <form
+            className="profile-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (
+                !contactDraft.name.trim() ||
+                !validEmail(contactDraft.email.trim())
+              ) {
+                setError(
+                  "Add a name and an email address like you@example.com.",
+                );
+                return;
+              }
+              rememberProfile(contactDraft);
+              setProfileModal(false);
+              setError("");
+              setToast("Signature saved for new reports.");
+            }}
+          >
+            <p className="modal-description">
+              Added to new reports automatically. Saved reports keep their
+              original signature; you can edit their message directly.
+            </p>
+            <label htmlFor="profile-name">Your name</label>
+            <input
+              id="profile-name"
+              name="name"
+              autoComplete="name"
+              required
+              maxLength={80}
+              value={contactDraft.name}
+              onChange={(event) =>
+                setContactDraft({ ...contactDraft, name: event.target.value })
+              }
+            />
+            <label htmlFor="profile-email">Your email</label>
+            <input
+              id="profile-email"
+              name="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+              maxLength={254}
+              value={contactDraft.email}
+              onChange={(event) =>
+                setContactDraft({ ...contactDraft, email: event.target.value })
+              }
+            />
+            <p className="contact-hint">
+              This email is included as contact info. Sending uses an account in
+              your chosen mail app.
+            </p>
+            {error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            )}
+            <button className="button-primary full" type="submit">
+              Save details <Check size={17} />
+            </button>
+            {(profile.name || profile.email) && (
+              <button
+                className="text-button remove-contact"
+                type="button"
+                onClick={() => {
+                  setProfileModal(false);
+                  setConfirmation("contact");
+                }}
+              >
+                Remove saved contact details
+              </button>
+            )}
+          </form>
+        </Modal>
+      )}
+      {confirmation && (
+        <Modal
+          title={
+            confirmation === "report"
+              ? "Delete this report?"
+              : "Remove saved contact details?"
+          }
+          onClose={() => setConfirmation(null)}
+        >
+          <p className="modal-description">
+            {confirmation === "report"
+              ? "This removes this report and its photo from this device. Download a copy first if you want to keep it. This can’t be undone."
+              : "Your saved name and email will be removed from this device. Existing reports keep their signatures; edit or delete those separately."}
+          </p>
+          <div className="confirmation-actions">
+            <button
+              className="button-secondary"
+              onClick={() => setConfirmation(null)}
+            >
+              Keep it
+            </button>
+            <button
+              className="button-primary danger-button"
+              onClick={() => {
+                if (confirmation === "report") void removeCurrent();
+                else {
+                  rememberProfile({ name: "", email: "" });
+                  setConfirmation(null);
+                  setToast(
+                    "Saved contact details removed. Existing reports unchanged.",
+                  );
+                }
+              }}
+            >
+              {confirmation === "report"
+                ? "Delete report & photo"
+                : "Remove details"}
+            </button>
+          </div>
+        </Modal>
+      )}
       {privacyModal && (
         <Modal
           title="Privacy, in plain language."
           onClose={() => setPrivacyModal(false)}
         >
           <div className="privacy-copy">
+            <h3>Your signature, ready when you are.</h3>
+            <p>
+              Your name and email are saved in this browser and copied into new
+              report messages. They aren’t an account login, aren’t verified,
+              and aren’t added to a mailing list. You can change or remove them
+              in Settings. Old reports keep the details already in their text.
+              Sending uses an account signed into your chosen app, not
+              permission granted by entering an address here.
+            </p>
             <h3>Your photos stay with you.</h3>
             <p>
               Reports and photos are saved in this browser on this device. They

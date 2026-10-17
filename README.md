@@ -8,10 +8,11 @@ The Vercel project is connected to this repository. Pushes to `main` automatical
 
 ## Working features
 
-- SF-style system typography, pale surfaces, subtle light effects, and a four-step animated onboarding: capture, choose an area, confirm a representative, and learn how sharing works.
+- SF-style system typography, paper-white surfaces, cobalt and orange accents, and lightweight animated illustrations. Five-step first-run onboarding: welcome, name, email, area, and a ready screen confirming the report signature and representative. Existing users see this setup once after upgrading; it can be replayed from Settings or skipped.
+- Name and email are saved locally and added to each new report’s sign-off. Settings supports editing/removing saved contact details; existing report snapshots keep their original signatures. Email format is checked, but inbox ownership/deliverability is not verified. This is not an email login, account, or mailing-list subscription.
 - Free district lookup using U.S. Census ACS2025 geography for the **119th Congress**, matched to the live House Clerk member directory. The Census Current geography already includes future 120th districts; this version deliberately avoids mixing those boundaries with current representatives. Update the selected vintage and district parser when Congress changes.
 - One photo per report. Choose a barrier type, enter a public location, optionally add a GPS pin and brief note, then generate an editable message.
-- Native file sharing passes the photo and report text to the phone's share sheet, where users choose an app and complete sending. Browser support varies. The app also links to the verified House Clerk profile, which links to the representative's official website/contact options. It does not guess an email address or post to government contact forms automatically.
+- **Send report** opens native file sharing with the photo and signed report text. Users choose an app and complete addressing/sending; it does not automatically send or choose a From account. Entering an email in setup does not authenticate or grant permission to send from that inbox. Browser support varies. The app links to the verified House Clerk profile for the representative's official website/contact options. It does not guess an email address or post to government contact forms automatically.
 - Copy-message and save-photo fallbacks for official contact forms; downloadable self-contained HTML document includes photo and text.
 - Images resized to 1400px, with metadata removed by re-encoding, and saved in IndexedDB on the user's device. Existing multi-observation data is migrated into separate reports without deleting original records. Deleted imported reports do not reappear.
 - The route/story interface has been removed. No fabricated office responses or delivery confirmations; “Shared” records a handoff to another app, not receipt by a representative.
@@ -35,6 +36,8 @@ Open the production HTTPS URL on a phone. iPhone: Safari → Share → Add to Ho
 ## Current limits and privacy
 
 This version stores reports on each browser/device; there are no accounts, cloud sync, public map, official case tracking, or automatic submissions. Clearing browser data can erase reports. Download important reports. Data saved on localhost does not automatically move to the production domain.
+
+Contact details stay local until included in a report the user shares. Removing the saved profile does not redact existing report text; users can edit or delete those separately. Setup checks email syntax only, not access to the inbox. The saved email is reply contact information, not a verified sender identity. Representative changes update a generated greeting without discarding user edits or signatures.
 
 Area lookup sends an explicitly chosen public address or GPS position through the application server to the Census service. It is not stored by application code; infrastructure providers may retain normal request metadata. Member directory fetches contain no user location. No image is uploaded for analysis. Brief reports are generated from the user-selected barrier, location, and note; this version does not claim to analyze photos with AI. A GPS pin, if added, appears in the editable message and is shared with it.
 

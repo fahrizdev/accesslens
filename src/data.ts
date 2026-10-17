@@ -1,3 +1,5 @@
+import { signature, type SenderProfile } from "./profile.ts";
+
 export const categories = [
   "Blocked curb ramp",
   "Stairs-only entrance",
@@ -25,6 +27,7 @@ export type BarrierReport = {
   created: string;
   summary: string;
   recipient?: Area;
+  sender?: SenderProfile;
   status: "Draft" | "Shared";
 };
 const database = new Promise<IDBDatabase>((resolve, reject) => {
@@ -60,8 +63,26 @@ export function buildSummary(
   note: string,
   coordinates?: string,
   name?: string,
+  sender?: SenderProfile,
 ) {
-  return `${name ? `Hello Representative ${name},` : "Hello,"}\n\nI’m reporting a possible accessibility barrier.\n\n${category}\nLocation: ${place}${coordinates ? ` (${coordinates})` : ""}${note.trim() ? `\n${note.trim()}` : ""}\n\nCould your office review this or direct me to the team responsible? Photo attached. Thank you.`;
+  const signOff = signature(sender);
+  return `${name ? `Hello Representative ${name},` : "Hello,"}\n\nI’m reporting a possible accessibility barrier.\n\n${category}\nLocation: ${place}${coordinates ? ` (${coordinates})` : ""}${note.trim() ? `\n${note.trim()}` : ""}\n\nCould your office review this or direct me to the team responsible? Photo attached. Thank you.${signOff ? `\n\n${signOff}` : ""}`;
+}
+export function retargetSummary(
+  text: string,
+  previousName?: string,
+  nextName?: string,
+): string {
+  const previousGreeting = previousName
+    ? `Hello Representative ${previousName},`
+    : "Hello,";
+  const nextGreeting = nextName
+    ? `Hello Representative ${nextName},`
+    : "Hello,";
+  if (text === previousGreeting || text.startsWith(`${previousGreeting}\n`)) {
+    return nextGreeting + text.slice(previousGreeting.length);
+  }
+  return text;
 }
 export async function saveReport(report: BarrierReport): Promise<void> {
   const db = await database;
