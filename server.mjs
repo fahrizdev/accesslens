@@ -3,6 +3,7 @@ import { readFile, access } from 'node:fs/promises'
 import { createReadStream } from 'node:fs'
 import { extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import areaHandler from './api/area.js'
 
 const root = fileURLToPath(new URL('.', import.meta.url))
 const dist = resolve(root, 'dist')
@@ -18,6 +19,7 @@ const mimeTypes = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript
 function json(res, status, body) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); res.end(JSON.stringify(body)) }
 const server = createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://localhost')
+  if (url.pathname === '/api/area') return areaHandler(req, res)
   if (url.pathname === '/api/status' && req.method === 'GET') return json(res, 200, { available: Boolean(process.env.OPENAI_API_KEY) })
   if (url.pathname === '/api/analyze' && req.method === 'POST') {
     // Server is loopback-only; reject cross-origin requests in browsers as an extra safeguard.
