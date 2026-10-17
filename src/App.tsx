@@ -4,275 +4,476 @@ import {
   useState,
   type ChangeEvent,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import {
-  Accessibility,
   ArrowLeft,
   ArrowRight,
-  BookOpen,
   Camera,
   Check,
+  CheckCheck,
   ChevronRight,
   Copy,
   Crosshair,
   Download,
   ExternalLink,
-  Footprints,
-  Heart,
+  FileText,
+  Home,
+  ImagePlus,
   MapPin,
-  MessageCircle,
-  Plus,
-  Route,
+  ScanLine,
+  Send,
   Settings2,
+  Share2,
   ShieldCheck,
   Sparkles,
   Trash2,
+  UserRound,
+  X,
 } from "lucide-react";
 import {
+  buildSummary,
   categories,
-  downloadPacket,
-  draftMessage,
-  loadRoutes,
-  removeRoute,
-  sampleRoute,
-  storeRoute,
+  deleteReport,
+  downloadPhoto,
+  downloadReport,
+  loadReports,
+  photoFile,
+  saveReport,
   type Area,
-  type Observation,
-  type RouteNote,
+  type BarrierReport,
 } from "./data";
 
 type View =
-  | "welcome"
-  | "area"
+  | "onboard"
   | "home"
-  | "create"
-  | "capture"
-  | "story"
-  | "action"
-  | "about";
-const date = (value: string) =>
+  | "photo"
+  | "details"
+  | "review"
+  | "reports"
+  | "settings";
+function readPreference<T>(key: string, fallback: T): T {
+  try {
+    return JSON.parse(localStorage.getItem(key) || "null") ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+const readArea = () => {
+  const area = readPreference<Area | null>("accesslens-area", null);
+  return area && typeof area.label === "string" && area.label !== "Area not set"
+    ? area
+    : null;
+};
+const displayDate = (value: string) =>
   new Date(value).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
   });
-const templates: Record<string, string> = {
-  "Blocked curb ramp":
-    "At this curb ramp, I noticed ____. This leaves ____ space to reach the crossing.",
-  "Stairs-only entrance":
-    "This approach has ____ steps. From this point, I could not see ____.",
-  "Obstructed pathway":
-    "The path is obstructed by ____. A person using this route would need to ____.",
-  "Uneven surface": "The surface has ____. It is located ____ along the path.",
-  "Heavy or difficult door":
-    "When I tried this door, ____. I noticed ____ about the handle or opening mechanism.",
-  "Missing signage":
-    "At this point on the route, I could not find a sign indicating ____.",
-  Other:
-    "I noticed ____ at ____. It affected my ability to use the route because ____.",
-};
-function readArea(): Area | null {
-  try {
-    const a = JSON.parse(localStorage.getItem("accesslens-area") || "null");
-    return a && typeof a.label === "string" ? a : null;
-  } catch {
-    return null;
-  }
-}
-function Neighborhood({ small = false }: { small?: boolean }) {
+
+function Ambient() {
   return (
-    <div className={`neighborhood ${small ? "small" : ""}`} aria-hidden="true">
-      <svg viewBox="0 0 520 400" fill="none">
-        <ellipse cx="261" cy="213" rx="222" ry="170" fill="#e4eadc" />
-        <path d="M34 293L221 183L488 295L287 401Z" fill="#d7dfcd" />
-        <path d="M65 320L219 231L454 331" stroke="#fffaf0" strokeWidth="45" />
-        <path
-          d="M237 182L237 234L169 272L287 329L286 397"
-          stroke="#fffaf0"
-          strokeWidth="33"
-        />
-        <path
-          d="M65 320L219 231L454 331"
-          stroke="#c5cbb7"
-          strokeWidth="2"
-          strokeDasharray="7 8"
-        />
-        <path d="M283 165L369 122L445 157L360 201Z" fill="#d77b61" />
-        <path d="M283 165L360 201V287L283 250Z" fill="#e8b092" />
-        <path d="M360 201L445 157V244L360 287Z" fill="#f5d3ad" />
-        <path d="M275 163L365 112L452 153L360 204Z" fill="#e69474" />
-        <path d="M304 204L322 212V243L304 234Z" fill="#658d85" />
-        <path d="M333 219L349 227V256L333 249Z" fill="#658d85" />
-        <path d="M377 217L396 207V236L377 246Z" fill="#658d85" />
-        <path d="M411 200L429 191V220L411 229Z" fill="#658d85" />
-        <path d="M113 171L175 135L225 160L163 196Z" fill="#d3b0da" />
-        <path d="M113 171L163 196V255L113 230Z" fill="#b1a2cb" />
-        <path d="M163 196L225 160V219L163 255Z" fill="#d9c9e8" />
-        <path d="M130 195L144 202V224L130 217Z" fill="#fff6df" />
-        <path d="M181 204L201 192V227L181 238Z" fill="#7d7295" />
-        <path
-          d="M89 266V211M458 278V227M250 150V105"
-          stroke="#937c54"
-          strokeWidth="7"
-          strokeLinecap="round"
-        />
-        <circle cx="88" cy="202" r="27" fill="#91ad81" />
-        <circle cx="458" cy="217" r="28" fill="#a1bb8d" />
-        <circle cx="250" cy="99" r="24" fill="#b6c890" />
-        <path d="M233 305L247 313L264 303L250 294Z" fill="#e5ae56" />
-        <path d="M233 305V320L247 328V313Z" fill="#d09443" />
-        <path d="M247 313L264 303V317L247 328Z" fill="#f4cc78" />
-        <path
-          d="M168 280L222 252L281 279L318 260"
-          stroke="#368378"
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeDasharray="2 11"
-        />
-        <circle
-          cx="168"
-          cy="280"
-          r="9"
-          fill="#fcf8ed"
-          stroke="#368378"
-          strokeWidth="4"
-        />
-        <circle cx="318" cy="260" r="9" fill="#368378" />
-        <path
-          d="M323 100C323 80 339 65 358 65C378 65 394 80 394 100C394 124 358 151 358 151C358 151 323 124 323 100Z"
-          fill="#23766c"
-        />
-        <circle cx="358" cy="100" r="14" fill="#fff8e9" />
-        <path
-          d="M99 113L102 104L105 113L114 116L105 119L102 128L99 119L90 116Z"
-          fill="#e7b45a"
-        />
-        <path
-          d="M420 92L422 85L425 92L432 95L425 97L422 105L420 97L413 95Z"
-          fill="#d4acdb"
-        />
-      </svg>
-      <span className="scene-label label-one">
-        <Camera size={15} /> Notice a barrier
-      </span>
-      <span className="scene-label label-two">
-        <Heart size={14} /> Make a little difference
-      </span>
+    <div className="ambient" aria-hidden="true">
+      <div className="light-cloud blue-cloud" />
+      <div className="light-cloud warm-cloud" />
+      <div className="surface-grain" />
     </div>
   );
 }
+function ScanDemo() {
+  return (
+    <div className="scan-demo" aria-hidden="true">
+      <div className="demo-scene">
+        <svg viewBox="0 0 320 220" fill="none">
+          <path d="M0 162L320 126V220H0Z" fill="#e1e3e9" />
+          <path d="M0 123L320 102V126L0 162Z" fill="#f0f1f5" />
+          <path d="M151 76L235 69V127L151 141Z" fill="#c3c9d3" />
+          <path d="M151 76L173 58L258 52L235 69Z" fill="#dde1e7" />
+          <path d="M235 69L258 52V111L235 127Z" fill="#aeb8c5" />
+          <path
+            d="M159 72L244 59"
+            stroke="#f8f9fb"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+          <path
+            d="M145 145L193 165L284 151"
+            stroke="#a6b7d5"
+            strokeWidth="3"
+            strokeDasharray="5 6"
+          />
+          <path
+            d="M50 101V160M45 105L101 100V157"
+            stroke="#c9cdd5"
+            strokeWidth="5"
+          />
+          <path d="M0 187L320 151" stroke="#cbd0da" strokeWidth="2" />
+        </svg>
+        <span className="scan-corner tl" />
+        <span className="scan-corner tr" />
+        <span className="scan-corner bl" />
+        <span className="scan-corner br" />
+        <div className="scan-sweep" />
+      </div>
+      <div className="demo-caption">
+        <span className="demo-caption-icon">
+          <Camera size={18} />
+        </span>
+        <div>
+          <b>Make the barrier visible.</b>
+          <small>One photo is all it takes to start.</small>
+        </div>
+        <span className="sample-label">Example</span>
+      </div>
+    </div>
+  );
+}
+function Representative({
+  area,
+  compact = false,
+}: {
+  area: Area | null | undefined;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={`representative ${compact ? "compact-representative" : ""}`}
+    >
+      <div className="representative-avatar">
+        <UserRound size={compact ? 22 : 31} strokeWidth={1.3} />
+      </div>
+      <div>
+        <span className="micro-label">
+          {area?.representative
+            ? "YOUR U.S. HOUSE REPRESENTATIVE"
+            : "YOUR REPRESENTATIVE"}
+        </span>
+        <h3>{area?.representative || "Let’s find your person."}</h3>
+        <p>
+          {area?.district ||
+            (area?.label
+              ? `Area: ${area.label}`
+              : "Matched to the area you choose.")}
+        </p>
+      </div>
+      {area?.representative && (
+        <span
+          className="verified-mark"
+          aria-label="Matched from the House Clerk directory"
+        >
+          <Check size={15} />
+        </span>
+      )}
+    </div>
+  );
+}
+function Modal({
+  children,
+  title,
+  onClose,
+}: {
+  children: ReactNode;
+  title: string;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    ref.current?.showModal();
+    return () => ref.current?.close();
+  }, []);
+  return (
+    <dialog
+      className="sheet"
+      ref={ref}
+      aria-label={title}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="sheet-inner">
+        <div className="sheet-heading">
+          <h2>{title}</h2>
+          <button className="icon-button" aria-label="Close" onClick={onClose}>
+            <X size={19} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </dialog>
+  );
+}
+function AreaPicker({
+  initial,
+  onChoose,
+}: {
+  initial?: Area | null;
+  onChoose: (area: Area) => void;
+}) {
+  const [address, setAddress] = useState("");
+  const [town, setTown] = useState(initial?.label || "");
+  const [result, setResult] = useState<Area | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const requestId = useRef(0);
+  useEffect(
+    () => () => {
+      requestId.current++;
+    },
+    [],
+  );
+  async function lookup(
+    input: { address?: string; lat?: number; lng?: number },
+    version: number,
+  ) {
+    try {
+      const response = await fetch("/api/area", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(25000),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.area)
+        throw new Error(data.error || "Could not find this area.");
+      if (version === requestId.current) setResult(data.area);
+    } catch (e) {
+      if (version === requestId.current)
+        setError(
+          e instanceof Error && e.name !== "TimeoutError"
+            ? e.message
+            : "The lookup took too long. Try an address or enter your town.",
+        );
+    } finally {
+      if (version === requestId.current) setBusy(false);
+    }
+  }
+  function gps() {
+    if (!navigator.geolocation) {
+      setError("Location is unavailable. Enter a public address below.");
+      return;
+    }
+    const version = ++requestId.current;
+    setBusy(true);
+    setError("");
+    setResult(null);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        if (version === requestId.current)
+          void lookup({ lat: coords.latitude, lng: coords.longitude }, version);
+      },
+      () => {
+        if (version === requestId.current) {
+          setBusy(false);
+          setError(
+            "Location access was unavailable. You can enter an address instead.",
+          );
+        }
+      },
+      { timeout: 12000, maximumAge: 30000, enableHighAccuracy: true },
+    );
+  }
+  function findAddress(event: FormEvent) {
+    event.preventDefault();
+    const version = ++requestId.current;
+    setError("");
+    setResult(null);
+    setBusy(true);
+    void lookup({ address }, version);
+  }
+  return (
+    <div className="area-picker">
+      <button className="button-primary full" onClick={gps} disabled={busy}>
+        <Crosshair size={17} />
+        {busy ? "Finding your area…" : "Use my location"}
+      </button>
+      <p className="permission-note">
+        <ShieldCheck size={12} /> A single location check. No background
+        tracking.
+      </p>
+      <div className="or-divider">
+        <span>or enter a public address</span>
+      </div>
+      <form onSubmit={findAddress}>
+        <label className="field-label">
+          Street address, city, and state
+          <input
+            autoComplete="off"
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            placeholder="A nearby library, school, or intersection"
+            required
+            maxLength={200}
+          />
+        </label>
+        <button className="button-secondary full" disabled={busy}>
+          Find my representative <ArrowRight size={16} />
+        </button>
+      </form>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {result && (
+        <div className="area-result">
+          <div className="area-result-label">
+            <MapPin size={15} />
+            <b>{result.label}</b>
+          </div>
+          <Representative area={result} compact />
+          <button
+            className="button-primary full"
+            onClick={() => onChoose(result)}
+          >
+            Use this area <Check size={16} />
+          </button>
+          <small>
+            Matched using U.S. Census boundaries and the House Clerk directory.
+          </small>
+        </div>
+      )}
+      <details className="manual-entry">
+        <summary>Enter my town without a lookup</summary>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (town.trim()) onChoose({ label: town.trim() });
+          }}
+        >
+          <label className="field-label">
+            Town and state
+            <input
+              value={town}
+              onChange={(event) => setTown(event.target.value)}
+              required
+              placeholder="Seattle, WA"
+              maxLength={100}
+            />
+          </label>
+          <button className="button-secondary full">
+            Save area <ArrowRight size={16} />
+          </button>
+          <p className="fine-print">You can choose a representative later.</p>
+        </form>
+      </details>
+      <p className="fine-print lookup-disclosure">
+        The address or coordinates you choose are sent to the U.S. Census
+        geocoder to find your district.
+      </p>
+    </div>
+  );
+}
+
 export default function App() {
   const [area, setArea] = useState<Area | null>(readArea);
   const [view, setView] = useState<View>(() =>
-    readArea() ? "home" : "welcome",
+    readPreference("accesslens-onboarding-v2", false) ? "home" : "onboard",
   );
-  const [routes, setRoutes] = useState<RouteNote[]>([]);
+  const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [reports, setReports] = useState<BarrierReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [active, setActive] = useState<RouteNote | null>(null);
-  const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [areaInput, setAreaInput] = useState("");
-  const [lookup, setLookup] = useState(false);
-  const [foundArea, setFoundArea] = useState<Area | null>(null);
-  const [manualArea, setManualArea] = useState("");
-  const [title, setTitle] = useState("");
-  const [start, setStart] = useState("");
-  const [destination, setDestination] = useState("");
-  const [image, setImage] = useState<string>();
-  const [processing, setProcessing] = useState(false);
-  const [category, setCategory] = useState(categories[0]);
-  const [description, setDescription] = useState("");
+  const [image, setImage] = useState("");
+  const [category, setCategory] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
+  const [note, setNote] = useState("");
   const [place, setPlace] = useState("");
   const [coordinates, setCoordinates] = useState("");
+  const [reportArea, setReportArea] = useState<Area | null>(area);
+  const [draftId, setDraftId] = useState("");
+  const [current, setCurrent] = useState<BarrierReport | null>(null);
+  const [summary, setSummary] = useState("");
+  const [processing, setProcessing] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [recipient, setRecipient] = useState("local accessibility team");
-  const [message, setMessage] = useState("");
-  const [includeCoordinates, setIncludeCoordinates] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [error, setError] = useState("");
+  const [storageWarning, setStorageWarning] = useState("");
+  const [toast, setToast] = useState("");
+  const [areaModal, setAreaModal] = useState<"profile" | "report" | null>(null);
+  const [privacyModal, setPrivacyModal] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  const sendPanel = useRef<HTMLDivElement>(null);
   const imageVersion = useRef(0);
+  const gpsVersion = useRef(0);
   useEffect(() => {
-    loadRoutes()
-      .then(setRoutes)
-      .catch((e) => setError(e.message))
+    loadReports()
+      .then(setReports)
+      .catch((e) => setStorageWarning(e.message))
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => {
     window.scrollTo(0, 0);
     heading.current?.focus({ preventScroll: true });
     setError("");
-  }, [view]);
+    if (view !== "details") {
+      gpsVersion.current++;
+      setLocating(false);
+    }
+  }, [view, step]);
   useEffect(() => {
     if (!toast) return;
-    const timer = window.setTimeout(() => setToast(""), 3500);
+    const timer = window.setTimeout(() => setToast(""), 4000);
     return () => clearTimeout(timer);
   }, [toast]);
-  const go = (next: View) => setView(next);
-  async function persist(route: RouteNote, next?: View) {
-    setSaving(true);
-    setError("");
+  function rememberArea(next: Area) {
+    setArea(next);
     try {
-      await storeRoute(route);
-      setRoutes((items) => [
-        route,
-        ...items.filter((item) => item.id !== route.id),
-      ]);
-      setActive(route);
-      if (next) go(next);
-      return true;
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Could not save. Please try again.",
-      );
-      return false;
-    } finally {
-      setSaving(false);
+      localStorage.setItem("accesslens-area", JSON.stringify(next));
+    } catch {
+      setToast("Area saved for this visit.");
     }
   }
-  function newRoute() {
-    setTitle("");
-    setStart("");
-    setDestination("");
-    go("create");
-  }
-  async function createRoute(event: FormEvent) {
-    event.preventDefault();
-    if (!destination.trim()) return;
-    const route: RouteNote = {
-      id: crypto.randomUUID(),
-      title: title.trim() || `Route to ${destination.trim()}`,
-      start: start.trim(),
-      destination: destination.trim(),
-      area: area?.label || "",
-      observations: [],
-      status: "Documented",
-      created: new Date().toISOString(),
-    };
-    if (await persist(route)) {
-      resetPhoto();
-      go("capture");
+  function finishOnboarding(openCamera = false) {
+    try {
+      localStorage.setItem("accesslens-onboarding-v2", "true");
+    } catch {
+      /* Onboarding may repeat in restricted browsing. */
     }
+    if (openCamera) newReport();
+    else setView("home");
   }
-  function resetPhoto(item?: Observation) {
+  function moveStep(next: number) {
+    setDirection(next > step ? 1 : -1);
+    setStep(next);
+  }
+  function newReport() {
     imageVersion.current++;
-    setImage(item?.image);
-    setCategory(item?.category || categories[0]);
-    setDescription(item?.description || "");
-    setPlace(item?.place || "");
-    setCoordinates(item?.coordinates || "");
-    setEditingId(item?.id || null);
+    gpsVersion.current++;
+    setImage("");
+    setCategory("");
+    setCustomCategory("");
+    setNote("");
+    setPlace("");
+    setCoordinates("");
+    setReportArea(area);
+    setCurrent(null);
+    setSummary("");
+    setDraftId(crypto.randomUUID());
     setProcessing(false);
-    setError("");
+    setView("photo");
   }
-  async function prepareImage(event: ChangeEvent<HTMLInputElement>) {
+  function navigate(next: View) {
+    if (
+      ["photo", "details"].includes(view) &&
+      (image || note || place) &&
+      !window.confirm(
+        "Leave this unfinished report? Your saved reports will stay on this device.",
+      )
+    )
+      return;
+    setView(next);
+  }
+  async function preparePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setError(
-        "Choose a JPG, PNG, or WebP photo. On iPhone, try taking a new photo.",
-      );
+    if (!file.type.startsWith("image/")) {
+      setError("Choose an image or take a new photo.");
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
@@ -289,1283 +490,1267 @@ export default function App() {
       canvas.width = Math.round(bitmap.width * scale);
       canvas.height = Math.round(bitmap.height * scale);
       const context = canvas.getContext("2d");
-      if (!context) throw new Error();
+      if (!context) throw new Error("Photo could not be prepared.");
       context.fillStyle = "#fff";
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close();
-      if (version === imageVersion.current)
-        setImage(canvas.toDataURL("image/jpeg", 0.76));
+      if (version === imageVersion.current) {
+        setImage(canvas.toDataURL("image/jpeg", 0.78));
+        setView("details");
+      }
     } catch {
       if (version === imageVersion.current)
-        setError("This photo could not be opened. Try another JPG or PNG.");
+        setError(
+          "Could not open this image. Try a JPG, PNG, or a new camera photo.",
+        );
     } finally {
       if (version === imageVersion.current) setProcessing(false);
     }
   }
-  async function saveObservation(event: FormEvent) {
-    event.preventDefault();
-    if (!active || processing) return;
-    if (!image) {
-      setError("Add a photo of what you noticed.");
-      return;
-    }
-    if (!place.trim() || !description.trim()) {
-      setError("Add a place and description.");
-      return;
-    }
-    if (description.includes("____")) {
-      setError("Fill in the blanks in your description before saving.");
-      return;
-    }
-    const observation: Observation = {
-      id: editingId || crypto.randomUUID(),
-      category,
-      place: place.trim(),
-      description: description.trim(),
-      image,
-      coordinates,
-      created:
-        active.observations.find((item) => item.id === editingId)?.created ||
-        new Date().toISOString(),
-    };
-    const items = editingId
-      ? active.observations.map((item) =>
-          item.id === editingId ? observation : item,
-        )
-      : [...active.observations, observation];
-    if (
-      await persist(
-        { ...active, observations: items, message: undefined },
-        "story",
-      )
-    ) {
-      resetPhoto();
-      setToast("Observation saved. A little more visible.");
-    }
-  }
-  async function areaLookup(payload: {
-    address?: string;
-    lat?: number;
-    lng?: number;
-  }) {
-    setLookup(true);
-    setError("");
-    setFoundArea(null);
-    try {
-      const response = await fetch("/api/area", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(25000),
-      });
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || "Location lookup is unavailable.");
-      setFoundArea(data.area);
-    } catch (e) {
-      setError(
-        e instanceof Error && e.name !== "TimeoutError"
-          ? e.message
-          : "Location lookup took too long. You can enter your town below.",
-      );
-    } finally {
-      setLookup(false);
-    }
-  }
-  function locate(forArea: boolean) {
+  function addLocation() {
     if (!navigator.geolocation) {
-      setError("GPS is unavailable. Enter the place by hand.");
+      setError("Location is unavailable. Enter the place below.");
       return;
     }
+    const version = ++gpsVersion.current;
     setLocating(true);
     setError("");
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setLocating(false);
-        if (forArea)
-          void areaLookup({ lat: coords.latitude, lng: coords.longitude });
-        else
-          setCoordinates(
-            `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`,
-          );
+      async ({ coords }) => {
+        if (version !== gpsVersion.current) return;
+        const pin = `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
+        setCoordinates(pin);
+        setPlace((previous) => previous.trim() || pin);
+        setReportArea(null);
+        try {
+          const response = await fetch("/api/area", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lat: coords.latitude,
+              lng: coords.longitude,
+            }),
+            signal: AbortSignal.timeout(22000),
+          });
+          const data = await response.json();
+          if (version === gpsVersion.current) {
+            if (response.ok && data.area) setReportArea(data.area);
+            else
+              setToast(
+                "GPS pin added. Choose a representative for this report below.",
+              );
+          }
+        } catch {
+          if (version === gpsVersion.current)
+            setToast(
+              "GPS pin added. Representative lookup is unavailable; check the recipient below.",
+            );
+        } finally {
+          if (version === gpsVersion.current) setLocating(false);
+        }
       },
       () => {
-        setLocating(false);
-        setError(
-          "Could not get your location. Allow location access in your browser, or enter the place by hand.",
-        );
+        if (version === gpsVersion.current) {
+          setLocating(false);
+          setError(
+            "Could not get your location. Enter a public place or intersection instead.",
+          );
+        }
       },
       { timeout: 12000, maximumAge: 30000, enableHighAccuracy: true },
     );
   }
-  function saveArea(next: Area) {
-    setArea(next);
+  async function persist(report: BarrierReport) {
     try {
-      localStorage.setItem("accesslens-area", JSON.stringify(next));
-    } catch {
-      setToast(
-        "Area set for this visit. Browser preferences could not be saved.",
+      await saveReport(report);
+      setReports((items) => [
+        report,
+        ...items.filter((item) => item.id !== report.id),
+      ]);
+      setStorageWarning("");
+      return true;
+    } catch (e) {
+      setStorageWarning(
+        e instanceof Error
+          ? e.message
+          : "Could not save on this device. You can still share.",
       );
+      return false;
     }
-    go("home");
   }
-  function openRoute(route: RouteNote) {
-    setActive(route);
-    go("story");
+  async function generate(event: FormEvent) {
+    event.preventDefault();
+    if (!image || !category || !place.trim()) {
+      setError("Add a photo, barrier type, and location.");
+      return;
+    }
+    if (locating) {
+      setError("Wait for the location check to finish.");
+      return;
+    }
+    const label =
+      category === "Other" && customCategory.trim()
+        ? customCategory.trim()
+        : category;
+    const report: BarrierReport = {
+      id: draftId || crypto.randomUUID(),
+      category: label,
+      note: note.trim(),
+      place: place.trim(),
+      coordinates: coordinates || undefined,
+      image,
+      created: current?.created || new Date().toISOString(),
+      recipient: reportArea || undefined,
+      summary: buildSummary(
+        label,
+        place.trim(),
+        note,
+        coordinates,
+        reportArea?.representative,
+      ),
+      status: "Draft",
+    };
+    setSaving(true);
+    setCurrent(report);
+    setSummary(report.summary);
+    await persist(report);
+    setSaving(false);
+    setView("review");
   }
-  function prepareAction() {
-    if (!active) return;
-    setRecipient("local accessibility team");
-    setMessage(
-      active.message || draftMessage(active, "local accessibility team"),
+  function openReport(report: BarrierReport) {
+    setCurrent(report);
+    setSummary(report.summary);
+    setDraftId(report.id);
+    setImage(report.image);
+    setCategory(
+      categories.includes(report.category) ? report.category : "Other",
     );
-    setIncludeCoordinates(false);
-    go("action");
+    setCustomCategory(
+      categories.includes(report.category) ? "" : report.category,
+    );
+    setNote(report.note);
+    setPlace(report.place);
+    setCoordinates(report.coordinates || "");
+    setReportArea(report.recipient || null);
+    setView("review");
   }
-  function chooseRecipient(value: string) {
+  function reviewedReport(): BarrierReport | null {
+    return current
+      ? { ...current, summary, recipient: reportArea || undefined }
+      : null;
+  }
+  async function share() {
+    const report = reviewedReport();
+    if (!report) return;
+    const file = photoFile(report);
+    let attachmentsSupported = false;
+    try {
+      attachmentsSupported = Boolean(
+        file &&
+          typeof navigator.share === "function" &&
+          navigator.canShare?.({ files: [file] }),
+      );
+    } catch {
+      /* Some browsers expose sharing without file support. */
+    }
+    if (!file || !attachmentsSupported) {
+      setError(
+        "This browser cannot share photo attachments directly. Copy the message and save the photo below, then attach it on the official contact page.",
+      );
+      sendPanel.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    setSharing(true);
+    setError("");
+    try {
+      await navigator.share({
+        files: [file],
+        title: `AccessLens: ${report.category}`,
+        text: summary,
+      });
+      const updated = { ...report, status: "Shared" as const };
+      setCurrent(updated);
+      await persist(updated);
+      setToast("Shared to your chosen app. Complete sending there.");
+    } catch (e) {
+      if (!(e instanceof Error && e.name === "AbortError"))
+        setError(
+          "Sharing could not open. Try copying the message and saving the photo instead.",
+        );
+    } finally {
+      setSharing(false);
+    }
+  }
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(summary);
+      setToast("Report copied. Attach the saved photo when you send it.");
+      const report = reviewedReport();
+      if (report) {
+        setCurrent(report);
+        await persist(report);
+      }
+    } catch {
+      setError("Select the report text and copy it manually.");
+    }
+  }
+  async function removeCurrent() {
     if (
-      active &&
-      message !== (active.message || draftMessage(active, recipient)) &&
+      !current ||
       !window.confirm(
-        "Replace your edited message with a draft for this contact?",
+        "Delete this report and photo from this device? Download a copy first if you want to keep it.",
       )
     )
       return;
-    setRecipient(value);
-    if (active) setMessage(draftMessage(active, value));
-  }
-  async function copyMessage() {
     try {
-      await navigator.clipboard.writeText(message);
-      setToast("Message copied. You choose when to send it.");
-    } catch {
-      setError("Could not copy. Select and copy the text in the message box.");
+      await deleteReport(current.id);
+      setReports((items) => items.filter((item) => item.id !== current.id));
+      setCurrent(null);
+      setView("reports");
+      setToast("Report deleted from this device.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not delete report.");
     }
   }
-  async function deleteActive() {
-    if (!active) return;
-    setSaving(true);
-    try {
-      await removeRoute(active.id);
-      setRoutes((items) => items.filter((item) => item.id !== active.id));
-      setActive(null);
-      setDeleteOpen(false);
-      go("home");
-      setToast("Route deleted from this device.");
-    } catch {
-      setError("Could not delete this route. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
-  const count = routes.reduce(
-    (sum, route) => sum + route.observations.length,
-    0,
-  );
-  const compact = ["capture", "story", "action", "create"].includes(view);
+  const isFlow = ["photo", "details", "review"].includes(view);
+  const recipient = reportArea?.representative;
+  const contactUrl =
+    reportArea?.contactUrl ||
+    "https://www.house.gov/representatives/find-your-representative";
   return (
-    <div className="app-shell">
+    <div className={`app-shell view-${view}`}>
+      <Ambient />
       <a className="skip-link" href="#main">
         Skip to content
       </a>
       <header className="topbar">
         <button
           className="brand"
-          onClick={() => go(area ? "home" : "welcome")}
           aria-label="AccessLens home"
+          onClick={() => (view === "onboard" ? moveStep(0) : navigate("home"))}
         >
-          <span className="brand-mark">
-            <Accessibility size={24} />
+          <span className="brand-symbol">
+            <ScanLine size={23} strokeWidth={2.1} />
           </span>
-          accesslens<span className="brand-dot">.</span>
+          <span>AccessLens</span>
         </button>
-        <nav aria-label="Main navigation">
-          <button
-            aria-label="My stories"
-            className={view === "home" ? "active" : ""}
-            onClick={() => go("home")}
-          >
-            <BookOpen size={16} />
-            <span>My stories</span>
+        {view === "onboard" ? (
+          <button className="header-skip" onClick={() => finishOnboarding()}>
+            Set up later <ArrowRight size={14} />
           </button>
-          <button
-            aria-label="The idea"
-            className={view === "about" ? "active" : ""}
-            onClick={() => go("about")}
-          >
-            <Heart size={16} />
-            <span>The idea</span>
-          </button>
-        </nav>
-        <button
-          className="area-chip"
-          onClick={() => {
-            setFoundArea(null);
-            setManualArea(area?.label || "");
-            go("area");
-          }}
-        >
-          <MapPin size={15} />
-          <span>{area?.label || "Set your area"}</span>
-          <Settings2 size={13} />
-        </button>
+        ) : (
+          <nav className="header-nav" aria-label="Main navigation">
+            <button
+              className={view === "reports" ? "selected" : ""}
+              onClick={() => navigate("reports")}
+            >
+              <FileText size={17} />
+              <span>My reports</span>
+            </button>
+            <button
+              className="settings-button"
+              aria-label="Settings"
+              onClick={() => navigate("settings")}
+            >
+              <Settings2 size={19} />
+            </button>
+          </nav>
+        )}
       </header>
-      <main id="main" className={`main-content ${compact ? "compact" : ""}`}>
-        {view === "welcome" && (
-          <section className="welcome-view">
-            <div className="hero">
-              <div className="hero-copy">
-                <span className="eyebrow">
-                  <span className="tiny-flower">✳</span> SMALL STEPS. MORE OPEN
-                  DOORS.
-                </span>
-                <h1 ref={heading} tabIndex={-1}>
-                  A little lens.
-                  <br />A more <em>open</em>
-                  <br />
-                  world.
-                </h1>
-                <p>
-                  That blocked ramp. That broken path.
-                  <br />
-                  Turn the barriers you notice into stories
-                  <br className="desktop-break" /> that can help your community
-                  change.
-                </p>
-                <button
-                  className="button-primary large"
-                  onClick={() => go("area")}
-                >
-                  Let’s make a little difference <ArrowRight size={19} />
-                </button>
-                <button
-                  className="text-button"
-                  onClick={() => openRoute(sampleRoute())}
-                >
-                  Take a peek at an example <ArrowRight size={15} />
-                </button>
-                <div className="hero-reassurance">
-                  <ShieldCheck size={15} /> Free to use. Your pace. Your voice.
-                </div>
-              </div>
-              <Neighborhood />
-            </div>
-            <div className="how-strip">
-              <span className="how-caption">
-                GOOD CHANGE
-                <br />
-                <b>starts small.</b>
-              </span>
-              <div>
-                <span className="step-icon peach">
-                  <Camera size={23} />
-                </span>
-                <span>
-                  <b>Notice it</b>
-                  <small>Capture a barrier on your route.</small>
-                </span>
-              </div>
-              <ArrowRight className="step-arrow" size={18} />
-              <div>
-                <span className="step-icon lilac">
-                  <Route size={23} />
-                </span>
-                <span>
-                  <b>Tell the story</b>
-                  <small>A few details make it clear.</small>
-                </span>
-              </div>
-              <ArrowRight className="step-arrow" size={18} />
-              <div>
-                <span className="step-icon sage">
-                  <MessageCircle size={23} />
-                </span>
-                <span>
-                  <b>Start a conversation</b>
-                  <small>Help the right people see it.</small>
-                </span>
-              </div>
-            </div>
-            <p className="bottom-note">
-              Made for everyday advocates. And the places we all share.{" "}
-              <Heart size={13} />
-            </p>
-          </section>
-        )}
-        {view === "area" && (
-          <section className="setup-view">
-            <button
-              className="back-button"
-              onClick={() => go(area ? "home" : "welcome")}
+      <main
+        id="main"
+        className={`main-content ${isFlow ? "flow-content" : ""}`}
+      >
+        {view === "onboard" && (
+          <section className="onboarding">
+            <div
+              className="onboarding-progress"
+              aria-label="Onboarding progress"
             >
-              <ArrowLeft size={17} /> Back
-            </button>
-            <div className="page-intro center">
-              <span className="eyebrow">
-                FIRST, YOUR LITTLE CORNER OF THE WORLD
-              </span>
-              <h1 ref={heading} tabIndex={-1}>
-                Where are we helping?
-              </h1>
-              <p>
-                Find your area and the representative who serves it.
-                <br />
-                You can change this any time.
-              </p>
-            </div>
-            <div className="setup-card">
-              <span className="large-icon sage">
-                <MapPin size={30} />
-              </span>
-              <h2>Start with your location</h2>
-              <p className="muted">
-                One location check—no background tracking. Your coordinates are
-                sent to the U.S. Census geocoder to find your district.
-              </p>
-              <button
-                className="button-primary full"
-                disabled={locating || lookup}
-                onClick={() => locate(true)}
-              >
-                <Crosshair size={18} />
-                {locating
-                  ? "Finding your location…"
-                  : lookup
-                    ? "Finding your area…"
-                    : "Use my current location"}
-              </button>
-              <div className="or-divider">
-                <span>or use a public address</span>
-              </div>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void areaLookup({ address: areaInput });
-                }}
-              >
-                <label className="input-label">
-                  Nearby public building or street address
-                  <input
-                    value={areaInput}
-                    onChange={(event) => setAreaInput(event.target.value)}
-                    placeholder="123 Main St, Seattle, WA"
-                    required
-                    maxLength={200}
-                  />
-                </label>
-                <button
-                  className="button-secondary full"
-                  disabled={lookup || locating}
-                >
-                  {lookup ? "Looking it up…" : "Find this area"}
-                  <ArrowRight size={16} />
-                </button>
-              </form>
-              {error && (
-                <p className="error" role="alert">
-                  {error}
-                </p>
-              )}
-              {foundArea && (
-                <div className="area-result">
-                  <span className="pill">
-                    <Check size={13} /> Area found
-                  </span>
-                  <h3>{foundArea.label}</h3>
-                  {foundArea.district && <p>{foundArea.district}</p>}
-                  {foundArea.representative && (
-                    <p>
-                      <b>{foundArea.representative}</b>
-                      <br />
-                      Your U.S. House representative
-                    </p>
-                  )}
+              {["Capture", "Your area", "Representative", "Ready"].map(
+                (label, index) => (
                   <button
-                    className="button-primary full"
-                    onClick={() => saveArea(foundArea)}
+                    key={label}
+                    aria-label={`Step ${index + 1}: ${label}`}
+                    aria-current={step === index ? "step" : undefined}
+                    disabled={index > step}
+                    onClick={() => moveStep(index)}
                   >
-                    Looks right. Let’s go <ArrowRight size={17} />
+                    <span className={index <= step ? "filled" : ""} />
+                    <small>{label}</small>
                   </button>
-                  <small>
-                    District: U.S. Census. Member details: House Clerk. Verify
-                    the match before contacting an office.
-                  </small>
-                </div>
+                ),
               )}
-              <details className="manual-area">
-                <summary>Prefer to enter a town and continue?</summary>
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (manualArea.trim())
-                      saveArea({ label: manualArea.trim() });
-                  }}
-                >
-                  <label className="input-label">
-                    Town / city and state
-                    <input
-                      value={manualArea}
-                      onChange={(event) => setManualArea(event.target.value)}
-                      placeholder="Seattle, WA"
-                      required
-                      maxLength={100}
-                    />
-                  </label>
-                  <p className="small muted">
-                    Document routes now and look up your representative later.
-                  </p>
-                  <button className="button-secondary full">
-                    Continue with this area <ArrowRight size={16} />
-                  </button>
-                </form>
-              </details>
             </div>
-            <button
-              className="text-button centered"
-              onClick={() => saveArea({ label: "Area not set" })}
+            <div
+              className={`onboarding-slide direction-${direction}`}
+              key={step}
             >
-              I’ll choose later
-            </button>
+              {step === 0 && (
+                <>
+                  <div className="onboard-copy">
+                    <span className="eyebrow">
+                      A LITTLE AWARENESS. A REAL DIFFERENCE.
+                    </span>
+                    <h1 ref={heading} tabIndex={-1}>
+                      Every place.
+                      <br />
+                      <span>For everyone.</span>
+                    </h1>
+                    <p>
+                      See something that makes a place hard to access? Snap a
+                      photo. We’ll help you turn it into a short report for your
+                      representative.
+                    </p>
+                  </div>
+                  <ScanDemo />
+                  <div className="onboard-feature-row">
+                    <span>
+                      <Camera size={16} /> One photo
+                    </span>
+                    <span>
+                      <MapPin size={16} /> A place
+                    </span>
+                    <span>
+                      <Send size={16} /> Your voice
+                    </span>
+                  </div>
+                </>
+              )}
+              {step === 1 && (
+                <>
+                  <div className="onboard-copy">
+                    <span className="eyebrow">02 / YOUR AREA</span>
+                    <h1 ref={heading} tabIndex={-1}>
+                      Start with
+                      <br />
+                      <span>where you are.</span>
+                    </h1>
+                    <p>
+                      Your area helps us find the right representative. You
+                      choose what location to share.
+                    </p>
+                  </div>
+                  <div className="onboard-card">
+                    {area && (
+                      <div className="current-area">
+                        <MapPin size={16} />
+                        <div>
+                          <small>YOUR SAVED AREA</small>
+                          <b>{area.label}</b>
+                        </div>
+                        <Check size={16} />
+                      </div>
+                    )}
+                    <AreaPicker
+                      initial={area}
+                      onChoose={(next) => {
+                        rememberArea(next);
+                        moveStep(2);
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+              {step === 2 && (
+                <>
+                  <div className="onboard-copy">
+                    <span className="eyebrow">03 / YOUR REPRESENTATIVE</span>
+                    <h1 ref={heading} tabIndex={-1}>
+                      A direct line.
+                      <br />
+                      <span>A place to start.</span>
+                    </h1>
+                    <p>
+                      Your photo and report can help an office understand the
+                      issue—and point you toward the people responsible.
+                    </p>
+                  </div>
+                  <div className="onboard-card rep-onboard">
+                    <Representative area={area} />
+                    {area?.representative ? (
+                      <>
+                        <div className="rep-detail">
+                          <MapPin size={15} />
+                          {area.label}
+                        </div>
+                        <div className="rep-detail">
+                          <ShieldCheck size={15} /> Matched using official
+                          government data
+                        </div>
+                        <p className="fine-print">
+                          Confirm this office serves your area. Local repairs
+                          may need a city department or property owner; your
+                          representative can help with a referral.
+                        </p>
+                        <button
+                          className="text-button"
+                          onClick={() => moveStep(1)}
+                        >
+                          Change area <ArrowRight size={14} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="muted">
+                          {area
+                            ? "We have your area, but no representative is selected yet."
+                            : "Choose an area to find your representative."}
+                        </p>
+                        <button
+                          className="button-secondary full"
+                          onClick={() => moveStep(1)}
+                        >
+                          Find my representative <Crosshair size={16} />
+                        </button>
+                        <p className="fine-print">
+                          You can also add this when you make your first report.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+              {step === 3 && (
+                <>
+                  <div className="onboard-copy">
+                    <span className="eyebrow">04 / YOU’RE READY</span>
+                    <h1 ref={heading} tabIndex={-1}>
+                      Your perspective.
+                      <br />
+                      <span>Ready to be heard.</span>
+                    </h1>
+                    <p>
+                      Take a photo, confirm the place, and review your brief
+                      report. Then share the photo and report through your phone
+                      or use an official contact page.
+                    </p>
+                  </div>
+                  <div className="onboard-card ready-card">
+                    <span className="ready-check">
+                      <CheckCheck size={28} />
+                    </span>
+                    <div className="ready-report">
+                      <span className="micro-label">EXAMPLE REPORT</span>
+                      <b>Obstructed pathway</b>
+                      <p>
+                        At the library entrance, bins are blocking the path.
+                        Could your office review this or direct me to the team
+                        responsible?
+                      </p>
+                      <span>
+                        <ImagePlus size={13} /> Photo attached <span>·</span>{" "}
+                        Location included
+                      </span>
+                    </div>
+                  </div>
+                  <p className="onboard-assurance">
+                    <ShieldCheck size={14} /> Review first. Share when you’re
+                    ready. Nothing sends automatically.
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="onboarding-controls">
+              <button
+                className="back-control"
+                onClick={() => moveStep(step - 1)}
+                disabled={step === 0}
+              >
+                <ArrowLeft size={17} />
+                <span>Back</span>
+              </button>
+              <span className="step-counter">
+                {step + 1} <span>/ 4</span>
+              </span>
+              <button
+                className="button-primary"
+                onClick={() =>
+                  step === 3 ? finishOnboarding(true) : moveStep(step + 1)
+                }
+              >
+                {step === 0
+                  ? "Get started"
+                  : step === 2 && area?.representative
+                    ? "Confirm representative"
+                    : step === 3
+                      ? "Take my first photo"
+                      : "Continue"}
+                <ArrowRight size={17} />
+              </button>
+            </div>
           </section>
         )}
+
         {view === "home" && (
           <section className="home-view">
-            <div className="dashboard-heading">
-              <div>
-                <span className="eyebrow">
-                  <span className="tiny-flower">✳</span> YOUR EVERYDAY ADVOCACY
-                  JOURNAL
+            <div className="home-intro">
+              <button
+                className="location-pill"
+                onClick={() => setAreaModal("profile")}
+              >
+                <MapPin size={13} />
+                {area?.label || "Set your area"}
+                <ChevronRight size={12} />
+              </button>
+              <h1 ref={heading} tabIndex={-1}>
+                See a barrier.
+                <br />
+                <span>Make it visible.</span>
+              </h1>
+              <p>
+                One photo. A short report.
+                <br className="mobile-break" /> A voice for better access.
+              </p>
+            </div>
+            <div className="home-capture">
+              <div className="camera-orbit" aria-hidden="true">
+                <span className="orbit-ring one" />
+                <span className="orbit-ring two" />
+                <span className="camera-disc">
+                  <Camera size={43} strokeWidth={1.2} />
                 </span>
-                <h1 ref={heading} tabIndex={-1}>
-                  Good change
-                  <br />
-                  starts <em>with you.</em>
-                </h1>
-                <p>A route. A few observations. A clearer way to be heard.</p>
-              </div>
-              <Neighborhood small />
-            </div>
-            <button className="start-card" onClick={newRoute}>
-              <span className="start-icon">
-                <Plus size={29} />
-              </span>
-              <span>
-                <b>Start a route check</b>
-                <small>
-                  Where are you headed? Let’s make the way more visible.
-                </small>
-              </span>
-              <ArrowRight size={24} />
-            </button>
-            <div className="stats-row">
-              <div>
-                <b>{routes.length}</b>
-                <span>route stories</span>
-              </div>
-              <span className="stats-divider" />
-              <div>
-                <b>{count}</b>
-                <span>barriers documented</span>
-              </div>
-              <span className="stats-divider" />
-              <div>
-                <ShieldCheck size={21} />
-                <span>Saved on this device</span>
-              </div>
-            </div>
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">ONE LITTLE STEP AT A TIME</span>
-                <h2>Your access stories</h2>
+                <span className="floating-tag photo-tag">
+                  <Check size={12} /> Photo
+                </span>
+                <span className="floating-tag location-tag">
+                  <MapPin size={12} /> Place
+                </span>
+                <span className="floating-tag report-tag">
+                  <FileText size={12} /> Report
+                </span>
               </div>
               <button
-                className="text-button"
-                onClick={() => openRoute(sampleRoute())}
+                className="button-primary capture-cta"
+                onClick={newReport}
               >
-                See an example <ArrowRight size={15} />
+                <Camera size={19} /> Take a photo <ArrowRight size={18} />
+              </button>
+              <p className="fine-print">
+                Or choose a photo you’ve already taken.
+              </p>
+            </div>
+            <div className="home-bottom">
+              <div className="how-it-works">
+                <span className="micro-label">FROM PHOTO TO ACTION</span>
+                <div>
+                  <span>
+                    <i>1</i>Capture
+                  </span>
+                  <ChevronRight size={13} />
+                  <span>
+                    <i>2</i>Review
+                  </span>
+                  <ChevronRight size={13} />
+                  <span>
+                    <i>3</i>Share
+                  </span>
+                </div>
+              </div>
+              <button
+                className="recent-link"
+                onClick={() => setView("reports")}
+              >
+                <span className="recent-icon">
+                  <FileText size={20} />
+                </span>
+                <span>
+                  <b>My reports</b>
+                  <small>
+                    {loading
+                      ? "Opening your reports…"
+                      : reports.length
+                        ? `${reports.length} saved on this device`
+                        : "Your saved reports will appear here"}
+                  </small>
+                </span>
+                <ArrowRight size={17} />
               </button>
             </div>
+          </section>
+        )}
+
+        {isFlow && (
+          <div className="flow-top">
+            <button
+              className="back-button"
+              onClick={() =>
+                view === "photo"
+                  ? navigate("home")
+                  : setView(view === "details" ? "photo" : "details")
+              }
+            >
+              <ArrowLeft size={16} />
+              {view === "photo" ? "Home" : "Back"}
+            </button>
+            <ol className="flow-steps" aria-label="Report progress">
+              {["Photo", "Details", "Share"].map((label, index) => (
+                <li
+                  key={label}
+                  className={
+                    index <= (view === "photo" ? 0 : view === "details" ? 1 : 2)
+                      ? "active"
+                      : ""
+                  }
+                  aria-current={
+                    index ===
+                    (view === "photo" ? 0 : view === "details" ? 1 : 2)
+                      ? "step"
+                      : undefined
+                  }
+                >
+                  <span>{index + 1}</span>
+                  {label}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {view === "photo" && (
+          <section className="photo-view">
+            <div className="page-intro">
+              <span className="eyebrow">01 / CAPTURE</span>
+              <h1 ref={heading} tabIndex={-1}>
+                What’s in the way?
+              </h1>
+              <p>Frame the barrier and a little of the space around it.</p>
+            </div>
+            <div className={`photo-stage ${image ? "has-photo" : ""}`}>
+              {image ? (
+                <img src={image} alt="Your selected barrier photo" />
+              ) : (
+                <>
+                  <ScanLine size={53} strokeWidth={0.9} />
+                  <span>Your next step starts here.</span>
+                </>
+              )}
+              <i className="scan-corner tl" />
+              <i className="scan-corner tr" />
+              <i className="scan-corner bl" />
+              <i className="scan-corner br" />
+              {processing && (
+                <div className="processing-overlay">
+                  <span className="spinner" />
+                  Preparing your photo…
+                </div>
+              )}
+            </div>
+            <div className="photo-buttons">
+              <label className="button-primary camera-input">
+                <Camera size={18} /> Take a photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  aria-label="Take a photo"
+                  onChange={(event) => void preparePhoto(event)}
+                  disabled={processing}
+                />
+              </label>
+              <label className="button-secondary camera-input">
+                <ImagePlus size={18} /> Photo library
+                <input
+                  type="file"
+                  accept="image/*"
+                  aria-label="Choose a photo from your library"
+                  onChange={(event) => void preparePhoto(event)}
+                  disabled={processing}
+                />
+              </label>
+            </div>
+            {image && (
+              <button
+                className="text-button centered"
+                onClick={() => setView("details")}
+              >
+                Use this photo <ArrowRight size={15} />
+              </button>
+            )}
             {error && (
               <p className="error" role="alert">
                 {error}
               </p>
             )}
-            {loading ? (
-              <div className="empty-state">Opening your journal…</div>
-            ) : routes.length === 0 ? (
-              <div className="empty-state">
-                <span className="large-icon lilac">
-                  <BookOpen size={29} />
-                </span>
-                <h3>Your first story is waiting.</h3>
-                <p>
-                  Start with a route you know—the way to school,
-                  <br />
-                  your local park, or the corner store.
+            <p className="privacy-caption">
+              <ShieldCheck size={13} /> Avoid faces, license plates, and private
+              addresses.
+            </p>
+          </section>
+        )}
+
+        {view === "details" && (
+          <section className="details-view">
+            <div className="page-intro">
+              <span className="eyebrow">02 / A LITTLE CONTEXT</span>
+              <h1 ref={heading} tabIndex={-1}>
+                Keep it simple.
+              </h1>
+              <p>
+                Confirm the place and what you noticed. We’ll draft the report.
+              </p>
+            </div>
+            <form
+              onSubmit={(event) => void generate(event)}
+              className="details-layout"
+            >
+              <div className="details-photo-panel">
+                <img src={image} alt="The barrier you’re reporting" />
+                <button
+                  type="button"
+                  className="photo-edit"
+                  onClick={() => setView("photo")}
+                >
+                  <Camera size={14} /> Change photo
+                </button>
+                <div className="photo-private">
+                  <ShieldCheck size={12} /> Your photo stays on this device
+                  until you share.
+                </div>
+              </div>
+              <div className="details-fields">
+                <fieldset className="category-field">
+                  <legend>What’s the barrier?</legend>
+                  <div className="category-options">
+                    {categories.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        aria-pressed={category === item}
+                        className={category === item ? "chosen" : ""}
+                        onClick={() => setCategory(item)}
+                      >
+                        {item === "Other" ? "Something else" : item}
+                        {category === item && <Check size={13} />}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+                {category === "Other" && (
+                  <label className="field-label">
+                    Give it a short name{" "}
+                    <span className="optional">optional</span>
+                    <input
+                      placeholder="What kind of barrier did you notice?"
+                      value={customCategory}
+                      onChange={(event) =>
+                        setCustomCategory(event.target.value)
+                      }
+                      maxLength={90}
+                    />
+                  </label>
+                )}
+                <div className="field-heading">
+                  <label htmlFor="report-place">Where is it?</label>
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={addLocation}
+                    disabled={locating}
+                  >
+                    <Crosshair size={13} />
+                    {locating ? "Finding location…" : "Use GPS"}
+                  </button>
+                </div>
+                <input
+                  id="report-place"
+                  className="standalone-input"
+                  placeholder="Building, entrance, or intersection"
+                  value={place}
+                  onChange={(event) => setPlace(event.target.value)}
+                  required
+                  maxLength={200}
+                />
+                {coordinates && (
+                  <p className="gps-caption">
+                    <MapPin size={11} /> {coordinates}{" "}
+                    <button type="button" onClick={() => setCoordinates("")}>
+                      Remove pin
+                    </button>
+                  </p>
+                )}
+                <label className="field-label">
+                  Anything to add? <span className="optional">optional</span>
+                  <textarea
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    placeholder="For example: bins are blocking the ramp beside the entrance."
+                    rows={3}
+                    maxLength={800}
+                  />
+                </label>
+                <div className="recipient-inline">
+                  <Representative area={reportArea} compact />
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => setAreaModal("report")}
+                  >
+                    {reportArea?.representative ? "Change" : "Find"}
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
+                <p className="fine-print">
+                  {coordinates
+                    ? reportArea?.representative
+                      ? "Recipient matched to this GPS location. Verify before sharing."
+                      : "GPS pin added. Choose a representative for this location before sharing."
+                    : "Recipient uses your saved area. Change it if this report is somewhere else."}
                 </p>
-                <button className="button-secondary" onClick={newRoute}>
-                  Make your first route check <ArrowRight size={16} />
+                {error && (
+                  <p className="error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <button
+                  className="button-primary full"
+                  disabled={saving || locating || !category}
+                >
+                  <FileText size={16} />
+                  {saving ? "Preparing report…" : "Generate brief report"}
+                  <ArrowRight size={16} />
+                </button>
+                <p className="draft-note">
+                  Drafted from your selected barrier, place, and note. Review
+                  before sharing.
+                </p>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {view === "review" && current && (
+          <section className="review-view">
+            <div className="page-intro">
+              <span className="eyebrow">03 / READY TO SHARE</span>
+              <h1 ref={heading} tabIndex={-1}>
+                A photo. A place.
+                <br />
+                <span>A point made.</span>
+              </h1>
+              <p>Review your report, then choose how to send it.</p>
+            </div>
+            <div className="review-layout">
+              <div className="report-paper">
+                <div className="report-paper-header">
+                  <span>
+                    <ScanLine size={17} /> AccessLens report
+                  </span>
+                  <small>{displayDate(current.created)}</small>
+                </div>
+                {current.image && (
+                  <img
+                    className="review-photo"
+                    src={current.image}
+                    alt={`${current.category} at ${current.place}`}
+                  />
+                )}
+                <div className="report-paper-content">
+                  <span className="report-category">{current.category}</span>
+                  <p className="report-place">
+                    <MapPin size={14} />
+                    {current.place}
+                  </p>
+                  <label
+                    className="field-label report-text-label"
+                    htmlFor="report-summary"
+                  >
+                    Your brief report <span className="optional">editable</span>
+                  </label>
+                  <textarea
+                    id="report-summary"
+                    className="summary-editor"
+                    value={summary}
+                    onChange={(event) => setSummary(event.target.value)}
+                    onBlur={() => {
+                      const report = reviewedReport();
+                      if (report && report.summary !== current.summary) {
+                        setCurrent(report);
+                        void persist(report);
+                      }
+                    }}
+                    rows={9}
+                    maxLength={4000}
+                  />
+                  <div className="report-attachments">
+                    <span>
+                      <ImagePlus size={12} />{" "}
+                      {current.image ? "1 photo" : "Photo unavailable"}
+                    </span>
+                    <span>
+                      <MapPin size={12} /> Place included
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="send-panel" ref={sendPanel}>
+                <span className="eyebrow">TO YOUR REPRESENTATIVE</span>
+                <Representative area={reportArea} compact />
+                <button
+                  className="text-button"
+                  onClick={() => setAreaModal("report")}
+                >
+                  {recipient
+                    ? "Change representative"
+                    : "Find my representative"}
+                  <ArrowRight size={14} />
+                </button>
+                <div className="send-divider" />
+                <button
+                  className="button-primary full share-button"
+                  onClick={() => void share()}
+                  disabled={sharing || !summary.trim()}
+                >
+                  <Share2 size={18} />
+                  {sharing ? "Opening share sheet…" : "Share photo + report"}
+                </button>
+                <p className="share-explainer">
+                  Choose Mail or another app on your phone. Your photo and
+                  report go together. Complete sending in that app.
+                </p>
+                <a
+                  className="button-secondary full"
+                  href={contactUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {recipient
+                    ? "Open official representative page"
+                    : "Find official contact page"}
+                  <ExternalLink size={14} />
+                </a>
+                <p className="fine-print">
+                  {recipient
+                    ? "The House Clerk page links to your representative’s official website and contact options."
+                    : "Use the official House lookup to find your office. No representative has been matched yet."}
+                </p>
+                <details className="share-alternatives">
+                  <summary>Copy, save, or attach manually</summary>
+                  <div>
+                    <button
+                      className="button-secondary"
+                      onClick={() => void copy()}
+                    >
+                      <Copy size={14} /> Copy report
+                    </button>
+                    <button
+                      className="button-secondary"
+                      disabled={!current.image}
+                      onClick={() => {
+                        const report = reviewedReport();
+                        if (report) downloadPhoto(report);
+                      }}
+                    >
+                      <Download size={14} /> Save photo
+                    </button>
+                    <button
+                      className="text-button"
+                      onClick={() => {
+                        const report = reviewedReport();
+                        if (report) downloadReport(report);
+                      }}
+                    >
+                      <FileText size={14} /> Download photo + report document
+                    </button>
+                    <p className="fine-print">
+                      For contact forms, copy the text and attach the saved
+                      photo if the form allows attachments.
+                    </p>
+                  </div>
+                </details>
+                <div className="send-note">
+                  <ShieldCheck size={16} />
+                  <p>
+                    You stay in control. Sharing opens another app; it doesn’t
+                    confirm receipt by an office.
+                  </p>
+                </div>
+                {error && (
+                  <p className="error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <button
+                  className="text-button new-report-link"
+                  onClick={newReport}
+                >
+                  <Camera size={14} /> Report another barrier
+                </button>
+                <button
+                  className="text-button delete-link"
+                  onClick={() => void removeCurrent()}
+                >
+                  <Trash2 size={13} /> Delete report
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {view === "reports" && (
+          <section className="reports-view">
+            <div className="page-intro">
+              <span className="eyebrow">SAVED ON THIS DEVICE</span>
+              <h1 ref={heading} tabIndex={-1}>
+                Your reports.
+              </h1>
+              <p>One barrier per report. Ready when you need them.</p>
+            </div>
+            <button className="button-primary reports-new" onClick={newReport}>
+              <Camera size={17} /> New report
+            </button>
+            {loading ? (
+              <div className="empty-state">
+                <span className="spinner" />
+                Opening your reports…
+              </div>
+            ) : reports.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-symbol">
+                  <FileText size={31} strokeWidth={1.1} />
+                </span>
+                <h2>A place for what you notice.</h2>
+                <p>Take your first photo to create a brief report.</p>
+                <button className="button-primary" onClick={newReport}>
+                  Take a photo <Camera size={16} />
                 </button>
               </div>
             ) : (
-              <div className="story-grid">
-                {routes.map((route) => (
+              <div className="report-list">
+                {reports.map((report) => (
                   <button
-                    className="story-card"
-                    key={route.id}
-                    onClick={() => openRoute(route)}
+                    className="report-list-item"
+                    key={report.id}
+                    onClick={() => openReport(report)}
                   >
-                    <span className="story-thumbnail">
-                      {route.observations[0]?.image ? (
-                        <img src={route.observations[0].image} alt="" />
-                      ) : (
-                        <Route size={28} />
-                      )}
-                    </span>
-                    <span className="story-card-body">
-                      <span
-                        className={`pill ${route.status === "Resolved" ? "green" : ""}`}
-                      >
-                        {route.status}
+                    {report.image ? (
+                      <img src={report.image} alt="" />
+                    ) : (
+                      <span className="no-photo">
+                        <FileText size={25} />
                       </span>
-                      <b>{route.title}</b>
+                    )}
+                    <span>
                       <small>
-                        {route.observations.length} observations ·{" "}
-                        {date(route.created)}
+                        {displayDate(report.created)}
+                        <i />{" "}
+                        {report.status === "Shared"
+                          ? "Shared to an app"
+                          : "Draft"}
                       </small>
+                      <b>{report.category}</b>
+                      <span>{report.place}</span>
                     </span>
                     <ChevronRight size={18} />
                   </button>
                 ))}
               </div>
             )}
-            <div className="gentle-note">
-              <Heart size={19} />
-              <p>
-                You don’t have to fix everything. Helping someone see the
-                problem is a place to start.
-              </p>
-            </div>
-          </section>
-        )}
-        {view === "create" && (
-          <section className="editor-view">
-            <button className="back-button" onClick={() => go("home")}>
-              <ArrowLeft size={17} /> My stories
-            </button>
-            <div className="page-intro">
-              <span className="eyebrow">01 / START YOUR STORY</span>
-              <h1 ref={heading} tabIndex={-1}>
-                Every route has a story.
-              </h1>
-              <p>
-                Pick a familiar journey. We’ll document what you notice along
-                the way.
-              </p>
-            </div>
-            <div className="two-column">
-              <form
-                className="panel"
-                onSubmit={(event) => void createRoute(event)}
-              >
-                <span className="large-icon peach">
-                  <Footprints size={27} />
-                </span>
-                <label className="input-label">
-                  Where are you headed?
-                  <input
-                    placeholder="The library, school, or a neighborhood park"
-                    value={destination}
-                    onChange={(event) => setDestination(event.target.value)}
-                    required
-                    maxLength={120}
-                  />
-                </label>
-                <label className="input-label">
-                  Starting from <span className="optional">optional</span>
-                  <input
-                    placeholder="A bus stop, corner, or public entrance"
-                    value={start}
-                    onChange={(event) => setStart(event.target.value)}
-                    maxLength={120}
-                  />
-                </label>
-                <label className="input-label">
-                  Give your story a name{" "}
-                  <span className="optional">optional</span>
-                  <input
-                    placeholder="My afternoon library trip"
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    maxLength={120}
-                  />
-                </label>
-                <p className="small muted">
-                  <MapPin size={14} />{" "}
-                  {area?.label || "You can set your area later"}
-                </p>
-                {error && (
-                  <p role="alert" className="error">
-                    {error}
-                  </p>
-                )}
-                <button
-                  className="button-primary full"
-                  disabled={saving || loading}
-                >
-                  {saving
-                    ? "Opening your journal…"
-                    : "Let’s notice the little things"}
-                  <ArrowRight size={18} />
-                </button>
-              </form>
-              <aside className="aside-note">
-                <span className="scribble-star">✳</span>
-                <h3>
-                  Your route.
-                  <br />
-                  Your perspective.
-                </h3>
-                <p>
-                  Look at crossings, paths, doors, and entrances. What makes the
-                  journey harder?
-                </p>
-                <p>
-                  You’re creating a record of what you see. This app doesn’t
-                  measure accessibility or certify a safe route.
-                </p>
-              </aside>
-            </div>
-          </section>
-        )}
-        {view === "capture" && active && (
-          <section className="editor-view">
-            <button className="back-button" onClick={() => go("story")}>
-              <ArrowLeft size={17} /> {active.title}
-            </button>
-            <div className="page-intro">
-              <span className="eyebrow">02 / NOTICE & DOCUMENT</span>
-              <h1 ref={heading} tabIndex={-1}>
-                {editingId ? "A little more context." : "What caught your eye?"}
-              </h1>
-              <p>One photo. Your words. A clearer picture of the route.</p>
-            </div>
-            <div className="two-column">
-              <form
-                className="panel capture-panel"
-                onSubmit={(event) => void saveObservation(event)}
-              >
-                <div className="photo-box">
-                  {image ? (
-                    <img src={image} alt="Your observation preview" />
-                  ) : (
-                    <>
-                      <span className="large-icon peach">
-                        <Camera size={31} />
-                      </span>
-                      <h3>A photo tells part of the story.</h3>
-                      <p>
-                        Show the barrier and a little of the path around it.
-                      </p>
-                    </>
-                  )}
-                </div>
-                <div className="photo-actions">
-                  <label className="button-primary">
-                    <Camera size={17} />
-                    {processing
-                      ? "Preparing…"
-                      : image
-                        ? "Retake photo"
-                        : "Take a photo"}
-                    <input
-                      className="file-input"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      capture="environment"
-                      onChange={(event) => void prepareImage(event)}
-                      disabled={processing}
-                    />
-                  </label>
-                  <label className="button-secondary">
-                    Choose from library
-                    <input
-                      className="file-input"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(event) => void prepareImage(event)}
-                      disabled={processing}
-                    />
-                  </label>
-                </div>
-                <label className="input-label">
-                  What kind of barrier?
-                  <select
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value)}
-                  >
-                    {categories.map((item) => (
-                      <option key={item}>{item}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="input-label">
-                  Where on the route?
-                  <input
-                    placeholder="East entrance, crossing at Pine St…"
-                    value={place}
-                    onChange={(event) => setPlace(event.target.value)}
-                    required
-                    maxLength={200}
-                  />
-                </label>
-                <div className="location-row">
-                  <button
-                    className="text-button"
-                    type="button"
-                    disabled={locating}
-                    onClick={() => locate(false)}
-                  >
-                    <Crosshair size={15} />
-                    {locating ? "Locating…" : "Add GPS pin"}
-                  </button>
-                  <span className="small muted">
-                    {coordinates || "Optional · stays on this device"}
-                  </span>
-                </div>
-                <label className="input-label">
-                  Tell us what you noticed
-                  <textarea
-                    placeholder="What is visible? How did it affect the way through?"
-                    rows={4}
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                    required
-                    maxLength={2000}
-                  />
-                </label>
-                <button
-                  className="text-button prompt-help"
-                  type="button"
-                  onClick={() => {
-                    if (
-                      !description ||
-                      window.confirm(
-                        "Replace your description with a writing prompt?",
-                      )
-                    )
-                      setDescription(templates[category] || templates.Other);
-                  }}
-                >
-                  <Sparkles size={15} /> Give me a writing prompt{" "}
-                  <span className="optional">Template, no AI required</span>
-                </button>
-                {error && (
-                  <p className="error" role="alert">
-                    {error}
-                  </p>
-                )}
-                <div className="panel-bottom">
-                  <span>
-                    <ShieldCheck size={15} /> Saved privately on this device
-                  </span>
-                  <button
-                    className="button-primary"
-                    disabled={saving || processing || loading}
-                  >
-                    <Check size={17} />
-                    {saving ? "Saving…" : "Save observation"}
-                  </button>
-                </div>
-              </form>
-              <aside className="aside-note sage-note">
-                <ShieldCheck size={27} />
-                <h3>
-                  A thoughtful
-                  <br />
-                  little snapshot.
-                </h3>
-                <p>
-                  Avoid faces, license plates, and home addresses. Only include
-                  details that help explain the route.
-                </p>
-                <p>
-                  Describe what you can see or experienced. If you can’t tell
-                  whether another entrance exists, say so.
-                </p>
-                <p className="small">
-                  Photo detection is a future addition. Your observations work
-                  without paid services.
-                </p>
-              </aside>
-            </div>
-          </section>
-        )}
-        {view === "story" && active && (
-          <section className="story-view">
-            <button className="back-button" onClick={() => go("home")}>
-              <ArrowLeft size={17} /> My stories
-            </button>
-            <div className="page-intro story-intro">
-              <span className="eyebrow">
-                {active.demo
-                  ? "ILLUSTRATIVE EXAMPLE · NOT A REAL REPORT"
-                  : "YOUR ACCESS STORY"}
-              </span>
-              <div className="title-row">
-                <h1 ref={heading} tabIndex={-1}>
-                  {active.title}
-                </h1>
-                {!active.demo && (
-                  <button
-                    className="icon-button"
-                    aria-label="Delete route"
-                    onClick={() => setDeleteOpen(true)}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
-              <p>
-                <MapPin size={16} />
-                {active.area || area?.label || "Area not set"}
-                <span>·</span>
-                {date(active.created)}
-                <span>·</span>
-                {active.observations.length} observations
-              </p>
-            </div>
-            <div className="route-ribbon">
-              <span className="route-dot" />
-              <div>
-                <small>FROM</small>
-                <b>{active.start || "Starting point"}</b>
-              </div>
-              <div className="route-dashes" />
-              <MapPin size={24} />
-              <div>
-                <small>TO</small>
-                <b>{active.destination}</b>
-              </div>
-            </div>
-            <div className="story-content">
-              <div className="timeline">
-                {active.observations.length === 0 && (
-                  <div className="empty-state">
-                    <Camera size={32} />
-                    <h3>Let’s add the first observation.</h3>
-                    <p>
-                      Your route is saved. Capture a barrier whenever you’re
-                      ready.
-                    </p>
-                  </div>
-                )}
-                {active.observations.map((item, index) => (
-                  <article className="observation" key={item.id}>
-                    <span className="timeline-number">{index + 1}</span>
-                    <div className="observation-content">
-                      {item.image ? (
-                        <img
-                          className="observation-photo"
-                          src={item.image}
-                          alt={`${item.category} at ${item.place}`}
-                        />
-                      ) : (
-                        <div
-                          className={`example-illustration example-${index}`}
-                        >
-                          <Route size={45} />
-                          <small>Illustrative example</small>
-                        </div>
-                      )}
-                      <div className="observation-body">
-                        <span className="pill">{item.category}</span>
-                        <h2>{item.place}</h2>
-                        <p>{item.description}</p>
-                        {!active.demo && (
-                          <button
-                            className="text-button"
-                            onClick={() => {
-                              resetPhoto(item);
-                              go("capture");
-                            }}
-                          >
-                            Edit observation <ArrowRight size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                ))}
-                {!active.demo && (
-                  <button
-                    className="add-observation"
-                    onClick={() => {
-                      resetPhoto();
-                      go("capture");
-                    }}
-                  >
-                    <Plus size={19} /> Add another observation
-                  </button>
-                )}
-              </div>
-              <aside className="story-aside panel">
-                <span className="large-icon lilac">
-                  <MessageCircle size={27} />
-                </span>
-                <h2>
-                  Small notes.
-                  <br />A bigger conversation.
-                </h2>
-                <p>
-                  Your story can help an office understand what makes this route
-                  difficult.
-                </p>
-                <button
-                  className="button-primary full"
-                  onClick={prepareAction}
-                  disabled={active.observations.length === 0}
-                >
-                  Prepare an action packet <ArrowRight size={17} />
-                </button>
-                <p className="small muted">
-                  Review it, edit it, share it when you’re ready.
-                </p>
-                {!active.demo && (
-                  <label className="input-label status-label">
-                    Your follow-up status
-                    <select
-                      value={active.status}
-                      disabled={saving}
-                      onChange={(event) =>
-                        void persist({
-                          ...active,
-                          status: event.target.value as RouteNote["status"],
-                        })
-                      }
-                    >
-                      {[
-                        "Documented",
-                        "Message prepared",
-                        "Contacted",
-                        "Resolved",
-                      ].map((status) => (
-                        <option key={status}>{status}</option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                <p className="small muted">
-                  {active.demo
-                    ? "This example is separate from your saved stories."
-                    : "Status is your own record. An office has not verified it."}
-                </p>
-              </aside>
-            </div>
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
-            )}
-          </section>
-        )}
-        {view === "action" && active && (
-          <section className="action-view">
-            <button className="back-button" onClick={() => go("story")}>
-              <ArrowLeft size={17} /> Back to your story
-            </button>
-            <div className="page-intro">
-              <span className="eyebrow">03 / FROM BARRIER TO ACTION</span>
-              <h1 ref={heading} tabIndex={-1}>
-                Your voice.
-                <br />
-                <em>A place to start.</em>
-              </h1>
-              <p>
-                A clear, respectful message can open a conversation.
-                <br />
-                Make this one sound like you.
-              </p>
-            </div>
-            {active.demo && (
-              <p className="demo-banner">
-                You’re trying an illustrative example. Use your own observations
-                before contacting an office.
-              </p>
-            )}
-            <div className="two-column action-columns">
-              <div className="panel">
-                <label className="input-label">
-                  Who would you like to contact?
-                  <select
-                    value={recipient}
-                    onChange={(event) => chooseRecipient(event.target.value)}
-                  >
-                    <option value="local accessibility team">
-                      Local accessibility / public works team
-                    </option>
-                    <option
-                      value={
-                        area?.representative
-                          ? `Representative ${area.representative}`
-                          : "my U.S. House representative"
-                      }
-                    >
-                      {area?.representative || "My U.S. House representative"}
-                    </option>
-                    <option value="school or property management team">
-                      School / property management team
-                    </option>
-                  </select>
-                </label>
-                <p className="contact-context">
-                  {recipient.includes("Representative") ||
-                  recipient.includes("House")
-                    ? "A congressional office can help with advocacy and referrals. Routine sidewalk repairs are usually handled locally."
-                    : "For a path, crossing, or public entrance, start with the city, campus, or property owner responsible."}
-                </p>
-                <label className="input-label">
-                  Your editable message
-                  <textarea
-                    className="message-editor"
-                    value={message}
-                    onChange={(event) => setMessage(event.target.value)}
-                    rows={16}
-                    maxLength={16000}
-                  />
-                </label>
-                <p className="small muted">
-                  Replace [Your name] and review every observation before
-                  sharing.
-                </p>
-                {error && (
-                  <p className="error" role="alert">
-                    {error}
-                  </p>
-                )}
-                <div className="action-buttons">
-                  <button
-                    className="button-primary"
-                    onClick={() => void copyMessage()}
-                  >
-                    <Copy size={16} /> Copy message
-                  </button>
-                  <button
-                    className="button-secondary"
-                    disabled={saving || active.demo}
-                    onClick={async () => {
-                      if (
-                        await persist({
-                          ...active,
-                          message,
-                          status:
-                            active.status === "Documented"
-                              ? "Message prepared"
-                              : active.status,
-                        })
-                      )
-                        setToast("Your message draft is saved.");
-                    }}
-                  >
-                    <Check size={16} />
-                    {saving ? "Saving…" : "Save draft"}
-                  </button>
-                </div>
-              </div>
-              <aside className="packet-aside">
-                <div className="packet-preview">
-                  <span className="eyebrow">YOUR ACCESS STORY</span>
-                  <BookOpen size={38} />
-                  <h2>{active.title}</h2>
-                  <p>
-                    {active.observations.length} observations · Photos & context
-                    <br />
-                    Your message, in one file
-                  </p>
-                  <div className="paper-lines">
-                    <i />
-                    <i />
-                    <i />
-                  </div>
-                </div>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={includeCoordinates}
-                    onChange={(event) =>
-                      setIncludeCoordinates(event.target.checked)
-                    }
-                  />{" "}
-                  Include GPS pins in the downloaded packet
-                </label>
-                <button
-                  className="button-primary full"
-                  onClick={() =>
-                    downloadPacket(active, message, includeCoordinates)
-                  }
-                >
-                  <Download size={18} /> Download story & photos
-                </button>
-                <p className="small muted">
-                  A self-contained HTML document. Open it to view, print, or
-                  save as PDF. Review photos and locations before sharing.
-                </p>
-                <div className="contact-card">
-                  <h3>Find the right person</h3>
-                  {area?.representative && (
-                    <p>
-                      <b>{area.representative}</b>
-                      <br />
-                      {area.district}
-                    </p>
-                  )}
-                  <a
-                    href={
-                      area?.contactUrl ||
-                      "https://www.house.gov/representatives/find-your-representative"
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Official House directory <ExternalLink size={14} />
-                  </a>
-                  {area?.phone && (
-                    <a href={`tel:${area.phone.replace(/[^+0-9]/g, "")}`}>
-                      Call House office <ExternalLink size={14} />
-                    </a>
-                  )}
-                  <button
-                    className="text-button"
-                    onClick={() => {
-                      setFoundArea(null);
-                      go("area");
-                    }}
-                  >
-                    Update my area <MapPin size={14} />
-                  </button>
-                  <p className="small muted">
-                    For local repairs, search your city’s official website for
-                    public works or its accessibility coordinator. Nothing is
-                    sent automatically.
-                  </p>
-                </div>
-              </aside>
-            </div>
-          </section>
-        )}
-        {view === "about" && (
-          <section className="about-view">
-            <span className="eyebrow">
-              A MORE OPEN WORLD, ONE ROUTE AT A TIME
-            </span>
-            <h1 ref={heading} tabIndex={-1}>
-              Everyone deserves
-              <br />a way <em>through.</em>
-            </h1>
-            <p className="about-lede">
-              A curb ramp blocked by a bin. A path interrupted by broken
-              pavement. A front door that starts with stairs. Small barriers can
-              change someone’s whole journey.
+            <p className="privacy-caption">
+              <ShieldCheck size={13} /> Stored locally. Download important
+              reports before clearing browser data.
             </p>
-            <div className="about-grid">
-              <article>
-                <Camera size={26} />
-                <h2>Make the invisible visible.</h2>
-                <p>
-                  Photograph possible barriers and describe the route in your
-                  own words.
-                </p>
-              </article>
-              <article>
-                <Route size={26} />
-                <h2>Connect the little things.</h2>
-                <p>
-                  Group observations into an access story so people can
-                  understand the journey.
-                </p>
-              </article>
-              <article>
-                <MessageCircle size={26} />
-                <h2>Give your voice a starting point.</h2>
-                <p>
-                  Prepare a clear message and a report with photos. You decide
-                  who sees it and when.
-                </p>
-              </article>
+          </section>
+        )}
+
+        {view === "settings" && (
+          <section className="settings-view">
+            <div className="page-intro">
+              <span className="eyebrow">MAKE IT YOURS</span>
+              <h1 ref={heading} tabIndex={-1}>
+                A few essentials.
+              </h1>
+              <p>Your area, your representative, your privacy.</p>
             </div>
-            <div className="privacy-panel">
-              <ShieldCheck size={28} />
-              <div>
-                <h2>Your journal stays yours.</h2>
-                <p>
-                  Routes and photos are stored in this browser’s local database.
-                  They don’t sync across devices. Clearing browser data can
-                  erase them, so download important stories. Location lookup
-                  sends the address or GPS fix you choose to the U.S. Census
-                  geocoder through our server. There is no background tracking.
-                  No photos are sent for AI analysis in this version.
-                </p>
-                <p>
-                  Personal observations, not accessibility certification,
-                  navigation guidance, or legal findings.
-                </p>
+            <div className="settings-group">
+              <button onClick={() => setAreaModal("profile")}>
+                <span className="settings-icon">
+                  <MapPin size={21} />
+                </span>
+                <span>
+                  <b>Your area</b>
+                  <small>{area?.label || "Choose your area"}</small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+              <div className="settings-representative">
+                <Representative area={area} compact />
               </div>
             </div>
-            <button className="button-primary large" onClick={newRoute}>
-              Start with a route you know <ArrowRight size={18} />
-            </button>
+            <div className="settings-group">
+              <button
+                onClick={() => {
+                  setStep(0);
+                  setView("onboard");
+                }}
+              >
+                <span className="settings-icon">
+                  <Sparkles size={21} />
+                </span>
+                <span>
+                  <b>Take the tour again</b>
+                  <small>Four steps from photo to report</small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+              <button onClick={() => setPrivacyModal(true)}>
+                <span className="settings-icon">
+                  <ShieldCheck size={21} />
+                </span>
+                <span>
+                  <b>Privacy & how it works</b>
+                  <small>Know what stays on your device</small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            <p className="version-note">
+              AccessLens · Built to help make access visible.
+            </p>
           </section>
+        )}
+        {storageWarning && view !== "onboard" && (
+          <p className="storage-warning" role="status">
+            {storageWarning}
+          </p>
         )}
       </main>
-      <footer>
-        <span>Small steps. More open doors.</span>
-        <span>
-          Made with care <Heart size={12} /> AccessLens
-        </span>
+      {view === "review" && current && (
+        <div className="mobile-share-dock">
+          <button
+            className="dock-recipient"
+            onClick={() => setAreaModal("report")}
+          >
+            <span>SHARE WITH</span>
+            <b>{recipient || "Choose representative"}</b>
+          </button>
+          <button
+            className="button-primary"
+            onClick={() => void share()}
+            disabled={sharing || !summary.trim()}
+          >
+            <Share2 size={17} />
+            {sharing ? "Opening…" : "Share report"}
+          </button>
+        </div>
+      )}
+      {view !== "onboard" && !isFlow && (
+        <nav className="mobile-nav" aria-label="App navigation">
+          <button
+            aria-current={view === "home" ? "page" : undefined}
+            onClick={() => setView("home")}
+          >
+            <Home size={20} />
+            <span>Home</span>
+          </button>
+          <button className="nav-camera" onClick={newReport}>
+            <span>
+              <Camera size={21} />
+            </span>
+            <b>New report</b>
+          </button>
+          <button
+            aria-current={view === "reports" ? "page" : undefined}
+            onClick={() => setView("reports")}
+          >
+            <FileText size={20} />
+            <span>Reports</span>
+          </button>
+        </nav>
+      )}
+      <footer className="app-footer">
+        <span>AccessLens</span>
+        <button onClick={() => setPrivacyModal(true)}>
+          <ShieldCheck size={12} /> Private by default
+        </button>
       </footer>
       {toast && (
         <div className="toast" role="status">
-          <Check size={17} />
+          <Check size={16} />
           {toast}
         </div>
       )}
-      {deleteOpen && (
-        <div className="modal-backdrop">
-          <section
-            className="modal panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-title"
-          >
-            <h2 id="delete-title">Delete this access story?</h2>
+      {areaModal && (
+        <Modal
+          title={
+            areaModal === "report" ? "Choose this report’s area" : "Your area"
+          }
+          onClose={() => setAreaModal(null)}
+        >
+          <p className="modal-description">
+            Find the representative for the area you choose.
+          </p>
+          <AreaPicker
+            initial={areaModal === "report" ? reportArea : area}
+            onChoose={(next) => {
+              if (areaModal === "report") {
+                setReportArea(next);
+                if (current) {
+                  const updated = { ...current, summary, recipient: next };
+                  if (
+                    summary === current.summary &&
+                    !current.summary.startsWith(
+                      `Hello Representative ${next.representative},`,
+                    )
+                  ) {
+                    const text = buildSummary(
+                      current.category,
+                      current.place,
+                      current.note,
+                      current.coordinates,
+                      next.representative,
+                    );
+                    setSummary(text);
+                    updated.summary = text;
+                  }
+                  setCurrent(updated);
+                  void persist(updated);
+                }
+              } else rememberArea(next);
+              setAreaModal(null);
+              setToast("Area updated.");
+            }}
+          />
+        </Modal>
+      )}
+      {privacyModal && (
+        <Modal
+          title="Privacy, in plain language."
+          onClose={() => setPrivacyModal(false)}
+        >
+          <div className="privacy-copy">
+            <h3>Your photos stay with you.</h3>
             <p>
-              This removes the route and its photos from this browser. Download
-              a copy first if you want to keep it.
+              Reports and photos are saved in this browser on this device. They
+              don’t sync between devices. Download important reports before
+              clearing browser data.
             </p>
-            {error && (
-              <p role="alert" className="error">
-                {error}
-              </p>
-            )}
-            <div className="action-buttons">
-              <button
-                autoFocus
-                className="button-secondary"
-                onClick={() => setDeleteOpen(false)}
-              >
-                Keep story
-              </button>
-              <button
-                className="button-danger"
-                disabled={saving}
-                onClick={() => void deleteActive()}
-              >
-                {saving ? "Deleting…" : "Delete story"}
-              </button>
-            </div>
-          </section>
-        </div>
+            <h3>You choose what to share.</h3>
+            <p>
+              Sharing passes the photo, place, GPS pin if added, and your edited
+              message to the app you choose. An official contact page opens
+              separately. AccessLens never sends a report to an office
+              automatically.
+            </p>
+            <h3>Location has one job.</h3>
+            <p>
+              With your permission, a single GPS fix or public address is sent
+              through our server to the U.S. Census geocoder to find your
+              district. Member details come from the House Clerk. Our
+              application doesn’t store lookup requests; hosting providers may
+              retain normal request metadata. There is no background tracking.
+            </p>
+            <h3>Brief reports, reviewed by you.</h3>
+            <p>
+              Reports are generated from the barrier category and details you
+              provide. Photos aren’t analyzed by AI in this free version.
+              Observations are not legal or accessibility compliance
+              assessments. Congressional offices can help with advocacy or
+              referrals; local repairs may need a city department or property
+              owner.
+            </p>
+          </div>
+        </Modal>
       )}
     </div>
   );

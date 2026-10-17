@@ -1,6 +1,6 @@
 # AccessLens
 
-Small steps. More open doors. A mobile-first accessibility journal built with React, TypeScript, and Vite for the Congressional App Challenge.
+Photo → place → brief report → share with your representative. A mobile-first accessibility reporting app built with React, TypeScript, and Vite for the Congressional App Challenge.
 
 Live app: [accesslens-eta.vercel.app](https://accesslens-eta.vercel.app). Source: [fahrizdev/accesslens](https://github.com/fahrizdev/accesslens) (private).
 
@@ -8,12 +8,13 @@ The Vercel project is connected to this repository. Pushes to `main` automatical
 
 ## Working features
 
-- Warm welcome and area onboarding with GPS, public-address lookup, and manual fallback.
+- SF-style system typography, pale surfaces, subtle light effects, and a four-step animated onboarding: capture, choose an area, confirm a representative, and learn how sharing works.
 - Free district lookup using U.S. Census ACS2025 geography for the **119th Congress**, matched to the live House Clerk member directory. The Census Current geography already includes future 120th districts; this version deliberately avoids mixing those boundaries with current representatives. Update the selected vintage and district parser when Congress changes.
-- Create a route, capture multiple barrier photos, edit observations, and track personal follow-up status.
-- Images resized to 1400px and saved in IndexedDB on the user's device. Existing prototype observations migrate without deleting the old storage key.
-- Editable contact message and self-contained HTML action packet with photos. GPS export is opt-in.
-- Separate, clearly labeled example story; no fabricated reports or agency responses.
+- One photo per report. Choose a barrier type, enter a public location, optionally add a GPS pin and brief note, then generate an editable message.
+- Native file sharing passes the photo and report text to the phone's share sheet, where users choose an app and complete sending. Browser support varies. The app also links to the verified House Clerk profile, which links to the representative's official website/contact options. It does not guess an email address or post to government contact forms automatically.
+- Copy-message and save-photo fallbacks for official contact forms; downloadable self-contained HTML document includes photo and text.
+- Images resized to 1400px, with metadata removed by re-encoding, and saved in IndexedDB on the user's device. Existing multi-observation data is migrated into separate reports without deleting original records. Deleted imported reports do not reappear.
+- The route/story interface has been removed. No fabricated office responses or delivery confirmations; “Shared” records a handoff to another app, not receipt by a representative.
 - Web manifest for home-screen use; no offline service worker yet.
 
 ## Run locally
@@ -33,9 +34,9 @@ Open the production HTTPS URL on a phone. iPhone: Safari → Share → Add to Ho
 
 ## Current limits and privacy
 
-This version stores routes on each browser/device; there are no accounts, cloud sync, public map, official case tracking, or automatic submissions. Clearing browser data can erase reports. Download important stories. Data saved on localhost does not automatically move to the production domain.
+This version stores reports on each browser/device; there are no accounts, cloud sync, public map, official case tracking, or automatic submissions. Clearing browser data can erase reports. Download important reports. Data saved on localhost does not automatically move to the production domain.
 
-Area lookup sends an explicitly chosen public address or GPS position through the application server to the Census service. It is not stored by application code; infrastructure providers may retain normal request metadata. Member directory fetches contain no user location. No image is uploaded for analysis in the new UI. Writing assistance uses labeled templates and does not pretend to detect barriers.
+Area lookup sends an explicitly chosen public address or GPS position through the application server to the Census service. It is not stored by application code; infrastructure providers may retain normal request metadata. Member directory fetches contain no user location. No image is uploaded for analysis. Brief reports are generated from the user-selected barrier, location, and note; this version does not claim to analyze photos with AI. A GPS pin, if added, appears in the editable message and is shared with it.
 
 The original `server.mjs` photo-assist endpoint is retained for the saved prototype only. It requires an OpenAI key and is **not deployed as a Vercel function**. The new zero-cost UI does not call it. Never add secrets to VITE-prefixed variables or commit `.env` files.
 
@@ -45,7 +46,7 @@ Government lookups can fail or return approximate results. Users confirm their a
 
 ```sh
 npm run build
-node --test tests/area.test.mjs
+npm test
 ```
 
 Deploy config: [Vercel Vite documentation](https://vercel.com/docs/frameworks/frontend/vite). Data: [Census geocoder](https://geocoding.geo.census.gov/geocoder/Geocoding_Services_API.html), [House Clerk directory](https://clerk.house.gov/xml/lists/MemberData.xml).
