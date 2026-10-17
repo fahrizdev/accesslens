@@ -200,7 +200,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     window.scrollTo(0, 0);
-    heading.current?.focus();
+    heading.current?.focus({ preventScroll: true });
     setError("");
   }, [view]);
   useEffect(() => {
