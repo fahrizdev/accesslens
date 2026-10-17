@@ -2,6 +2,10 @@
 
 Small steps. More open doors. A mobile-first accessibility journal built with React, TypeScript, and Vite for the Congressional App Challenge.
 
+Live app: [accesslens-eta.vercel.app](https://accesslens-eta.vercel.app). Source: [fahrizdev/accesslens](https://github.com/fahrizdev/accesslens) (private).
+
+The Vercel project is connected to this repository. Pushes to `main` automatically publish to the live app. Vercel's GitHub app is restricted to this repository.
+
 ## Working features
 
 - Warm welcome and area onboarding with GPS, public-address lookup, and manual fallback.
