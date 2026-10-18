@@ -10,11 +10,9 @@ import {
   Sun,
   Sunrise,
   Sunset,
-  UserRound,
 } from "lucide-react";
 import type { Area, BarrierReport } from "./data";
 import { greetingFor } from "./greeting";
-import Character from "./Character";
 
 type Props = {
   name: string;
@@ -23,7 +21,6 @@ type Props = {
   loading: boolean;
   headingRef: RefObject<HTMLHeadingElement | null>;
   onReport: () => void;
-  onProfile: () => void;
   onArea: () => void;
   onReports: () => void;
   onOpenReport: (report: BarrierReport) => void;
@@ -36,7 +33,6 @@ export default function HomeDashboard({
   loading,
   headingRef,
   onReport,
-  onProfile,
   onArea,
   onReports,
   onOpenReport,
@@ -60,7 +56,7 @@ export default function HomeDashboard({
       greeting.period
     ] || Sun;
   return (
-    <section className={`dashboard home-studio period-${greeting.period}`}>
+    <section className={`dashboard period-${greeting.period}`}>
       <header className="dashboard-heading">
         <div>
           <p className="dashboard-date">
@@ -80,82 +76,50 @@ export default function HomeDashboard({
               </>
             )}
           </h1>
-          {!firstName && (
-            <button className="home-personalize" onClick={onProfile}>
-              <UserRound size={14} /> Make yourself at home{" "}
-              <ArrowRight size={13} />
-            </button>
-          )}
         </div>
         <div className="daylight-orb" aria-hidden="true">
           <DayIcon size={34} strokeWidth={1.2} />
         </div>
       </header>
 
-      <div className="home-workspace">
+      <div className="dashboard-top">
         <button
           className="report-launch"
           aria-label="Make a report"
           aria-describedby="report-launch-hint"
           onClick={onReport}
         >
+          <span className="report-launch-icon">
+            <Camera size={31} strokeWidth={1.4} />
+          </span>
           <span className="report-launch-copy">
-            <span className="home-action-label">
-              <Camera size={16} /> A PHOTO IS A START
-            </span>
             <strong>Make a report</strong>
-            <span id="report-launch-hint">See a barrier? Capture it.</span>
-            <span className="home-camera-link">
-              Open camera <ArrowUpRight size={18} />
+            <span id="report-launch-hint">
+              Add a photo of an access barrier.
+              <br />
+              We’ll help with the details.
             </span>
           </span>
-          <span className="home-camera-art" aria-hidden="true">
-            <svg viewBox="0 0 260 270" fill="none">
-              <ellipse
-                cx="132"
-                cy="239"
-                rx="94"
-                ry="16"
-                fill="#9d87ae"
-                opacity=".09"
-              />
-              <g transform="translate(140 231) scale(1.13)">
-                <Character />
-              </g>
-              <path
-                d="M45 64V48H61M210 64V48H194M45 199V215H61M210 199V215H194"
-                stroke="#c8b6d9"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
+          <span className="report-launch-arrow">
+            <ArrowUpRight size={23} strokeWidth={1.5} />
           </span>
         </button>
-        <div className="home-side">
-          <button className="neighborhood-card" onClick={onArea}>
-            <span className="neighborhood-label">
-              <MapPin size={17} /> YOUR NEIGHBORHOOD
-            </span>
-            <strong>{area?.label || "Keep it local."}</strong>
-            <span className="neighborhood-detail">
-              {area?.representative || "Find your representative"}
-            </span>
-            <span className="neighborhood-edit">
-              {area ? "Manage" : "Choose an area"}
-              <ArrowRight size={15} />
-            </span>
-          </button>
-          <div className="home-note">
-            <span className="home-note-mark" aria-hidden="true">
-              ✳
-            </span>
-            <p>
-              Your perspective
-              <br />
-              <span>belongs here.</span>
-            </p>
-          </div>
-        </div>
+        <button className="neighborhood-card" onClick={onArea}>
+          <span className="neighborhood-label">
+            <MapPin size={14} /> YOUR AREA
+          </span>
+          <strong>{area?.label || "Where’s home?"}</strong>
+          <span className="neighborhood-detail">
+            {area?.representative ||
+              (area
+                ? "Find your representative"
+                : "Choose an area for your reports")}
+          </span>
+          <span className="neighborhood-edit">
+            {area ? "Manage area" : "Set your area"}
+            <ArrowRight size={15} />
+          </span>
+        </button>
       </div>
 
       <section
@@ -164,11 +128,9 @@ export default function HomeDashboard({
       >
         <div className="dashboard-section-heading">
           <h2 id="recent-reports-heading">Recent reports</h2>
-          {reports.length > 0 && (
-            <button className="text-button" onClick={onReports}>
-              View all <ArrowRight size={14} />
-            </button>
-          )}
+          <button className="text-button" onClick={onReports}>
+            View all <ArrowRight size={14} />
+          </button>
         </div>
         {loading ? (
           <div className="dashboard-empty" role="status">
@@ -213,11 +175,16 @@ export default function HomeDashboard({
             </div>
             <div>
               <h3>No reports yet</h3>
-              <p>Your first one will appear here.</p>
+              <p>
+                Reports you create will be saved here,
+                <br className="empty-break" /> on this device.
+              </p>
             </div>
           </div>
         )}
-        <p className="dashboard-local">Saved on this device.</p>
+        <p className="dashboard-local">
+          Only you can see the reports saved on this device.
+        </p>
       </section>
     </section>
   );

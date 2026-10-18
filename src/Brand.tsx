@@ -20,13 +20,7 @@ export function LensMark({ className = "" }: { className?: string }) {
   );
 }
 
-export function Splash({
-  onContinue,
-  onReveal,
-}: {
-  onContinue: () => void;
-  onReveal: () => void;
-}) {
+export function Splash({ onContinue }: { onContinue: () => void }) {
   const [leaving, setLeaving] = useState(false);
   const [buttonReady, setButtonReady] = useState(false);
   const exitTimer = useRef<number | undefined>(undefined);
@@ -40,13 +34,12 @@ export function Splash({
 
   function enterApp() {
     if (leaving) return;
-    onReveal();
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       onContinue();
       return;
     }
     setLeaving(true);
-    exitTimer.current = window.setTimeout(onContinue, 780);
+    exitTimer.current = window.setTimeout(onContinue, 300);
   }
 
   return (

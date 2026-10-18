@@ -51,9 +51,16 @@ import {
 
 import { LensMark, Splash } from "./Brand";
 import HomeDashboard from "./Home";
-import Intro from "./Intro";
+import Onboarding from "./Onboarding";
 
-type View = "home" | "photo" | "details" | "review" | "reports" | "settings";
+type View =
+  | "onboard"
+  | "home"
+  | "photo"
+  | "details"
+  | "review"
+  | "reports"
+  | "settings";
 function readPreference<T>(key: string, fallback: T): T {
   try {
     return JSON.parse(localStorage.getItem(key) || "null") ?? fallback;
@@ -389,10 +396,6 @@ function AreaPicker({
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const [launchStarted, setLaunchStarted] = useState(false);
-  const [showIntro, setShowIntro] = useState(
-    () => !readPreference("accesslens-intro-v1", false),
-  );
   const [profile, setProfile] = useState<SenderProfile>(() =>
     normalizeProfile(readPreference(PROFILE_KEY, null)),
   );
@@ -402,7 +405,11 @@ export default function App() {
     null,
   );
   const [area, setArea] = useState<Area | null>(readArea);
-  const [view, setView] = useState<View>("home");
+  const [view, setView] = useState<View>(() =>
+    readPreference("accesslens-onboarding-v4", false) ? "home" : "onboard",
+  );
+  const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState(1);
   const [reports, setReports] = useState<BarrierReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [image, setImage] = useState("");
@@ -442,7 +449,7 @@ export default function App() {
       gpsVersion.current++;
       setLocating(false);
     }
-  }, [view, showSplash, showIntro]);
+  }, [view, step, showSplash]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(""), 4000);
@@ -456,13 +463,14 @@ export default function App() {
       setToast("Area saved for this visit.");
     }
   }
-  function finishIntro() {
+  function finishOnboarding(openCamera = false) {
     try {
-      localStorage.setItem("accesslens-intro-v1", "true");
+      localStorage.setItem("accesslens-onboarding-v4", "true");
     } catch {
-      /* The intro can repeat if browser storage is unavailable. */
+      /* Onboarding may repeat in restricted browsing. */
     }
-    setShowIntro(false);
+    if (openCamera) newReport();
+    else setView("home");
   }
   function rememberProfile(value: SenderProfile) {
     const next = normalizeProfile(value);
@@ -473,6 +481,26 @@ export default function App() {
     } catch {
       setToast("Contact details saved for this visit only.");
     }
+  }
+  function nextContactStep(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const input = event.currentTarget.querySelector("input");
+    if (step === 1 && !contactDraft.name.trim()) {
+      input?.setCustomValidity("What name would you like to sign with?");
+      input?.reportValidity();
+      return;
+    }
+    if (step === 2 && !validEmail(contactDraft.email.trim())) {
+      input?.setCustomValidity("Enter an email address like you@example.com.");
+      input?.reportValidity();
+      return;
+    }
+    rememberProfile(contactDraft);
+    moveStep(step + 1);
+  }
+  function moveStep(next: number) {
+    setDirection(next > step ? 1 : -1);
+    setStep(next);
   }
   function newReport() {
     imageVersion.current++;
@@ -748,946 +776,931 @@ export default function App() {
   const contactUrl =
     reportArea?.contactUrl ||
     "https://www.house.gov/representatives/find-your-representative";
+  if (showSplash) return <Splash onContinue={() => setShowSplash(false)} />;
   return (
-    <>
-      {showSplash && (
-        <Splash
-          onReveal={() => setLaunchStarted(true)}
-          onContinue={() => setShowSplash(false)}
-        />
-      )}
-      {launchStarted && showIntro && (
-        <Intro active={!showSplash} onFinish={finishIntro} />
-      )}
-      {(launchStarted || !showSplash) && (
-        <div
-          className={`app-shell view-${view}${showIntro ? " behind-intro" : ""}`}
-          inert={showSplash || showIntro}
-          aria-hidden={showSplash || showIntro || undefined}
+    <div className={`app-shell view-${view}`}>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+      <header className="topbar">
+        <button
+          className="brand"
+          aria-label="AccessLens home"
+          onClick={() => (view === "onboard" ? moveStep(1) : navigate("home"))}
         >
-          <a className="skip-link" href="#main">
-            Skip to content
-          </a>
-          <header className="topbar">
+          <LensMark />
+          <span>accesslens</span>
+        </button>
+        {view === "onboard" ? (
+          <button className="header-skip" onClick={() => finishOnboarding()}>
+            Set up later <ArrowRight size={14} />
+          </button>
+        ) : (
+          <nav className="header-nav" aria-label="Main navigation">
             <button
-              className="brand"
-              aria-label="AccessLens home"
-              onClick={() => navigate("home")}
+              className={view === "reports" ? "selected" : ""}
+              onClick={() => navigate("reports")}
             >
-              <LensMark />
-              <span>accesslens</span>
+              <FileText size={17} />
+              <span>My reports</span>
             </button>
-            <nav className="header-nav" aria-label="Main navigation">
-              <button
-                className={view === "reports" ? "selected" : ""}
-                onClick={() => navigate("reports")}
-              >
-                <FileText size={17} />
-                <span>My reports</span>
-              </button>
-              <button
-                className="settings-button"
-                aria-label="Settings"
-                onClick={() => navigate("settings")}
-              >
-                <Settings2 size={19} />
-              </button>
-            </nav>
-          </header>
-          <main
-            id="main"
-            className={`main-content ${isFlow ? "flow-content" : ""}`}
-          >
-            {view === "home" && (
-              <HomeDashboard
-                name={profile.name}
-                area={area}
-                reports={reports}
-                loading={loading}
-                headingRef={heading}
-                onReport={newReport}
-                onProfile={() => {
-                  setContactDraft(profile);
-                  setProfileModal(true);
+            <button
+              className="settings-button"
+              aria-label="Settings"
+              onClick={() => navigate("settings")}
+            >
+              <Settings2 size={19} />
+            </button>
+          </nav>
+        )}
+      </header>
+      <main
+        id="main"
+        className={`main-content ${isFlow ? "flow-content" : ""}`}
+      >
+        {view === "onboard" && (
+          <Onboarding
+            step={step}
+            direction={direction}
+            profile={profile}
+            draft={contactDraft}
+            area={area}
+            setDraft={setContactDraft}
+            move={moveStep}
+            finish={finishOnboarding}
+            submit={nextContactStep}
+            areaPicker={
+              <AreaPicker
+                initial={area}
+                onChoose={(next) => {
+                  rememberArea(next);
+                  moveStep(4);
                 }}
-                onArea={() => setAreaModal("profile")}
-                onReports={() => setView("reports")}
-                onOpenReport={openReport}
               />
-            )}
+            }
+          />
+        )}
 
-            {isFlow && (
-              <div className="flow-top">
-                <button
-                  className="back-button"
-                  onClick={() =>
-                    view === "photo"
-                      ? navigate("home")
-                      : setView(view === "details" ? "photo" : "details")
+        {view === "home" && (
+          <HomeDashboard
+            name={profile.name}
+            area={area}
+            reports={reports}
+            loading={loading}
+            headingRef={heading}
+            onReport={newReport}
+            onArea={() => setAreaModal("profile")}
+            onReports={() => setView("reports")}
+            onOpenReport={openReport}
+          />
+        )}
+
+        {isFlow && (
+          <div className="flow-top">
+            <button
+              className="back-button"
+              onClick={() =>
+                view === "photo"
+                  ? navigate("home")
+                  : setView(view === "details" ? "photo" : "details")
+              }
+            >
+              <ArrowLeft size={16} />
+              {view === "photo" ? "Home" : "Back"}
+            </button>
+            <ol className="flow-steps" aria-label="Report progress">
+              {["Photo", "Details", "Share"].map((label, index) => (
+                <li
+                  key={label}
+                  className={
+                    index <= (view === "photo" ? 0 : view === "details" ? 1 : 2)
+                      ? "active"
+                      : ""
+                  }
+                  aria-current={
+                    index ===
+                    (view === "photo" ? 0 : view === "details" ? 1 : 2)
+                      ? "step"
+                      : undefined
                   }
                 >
-                  <ArrowLeft size={16} />
-                  {view === "photo" ? "Home" : "Back"}
-                </button>
-                <ol className="flow-steps" aria-label="Report progress">
-                  {["Photo", "Details", "Share"].map((label, index) => (
-                    <li
-                      key={label}
-                      className={
-                        index <=
-                        (view === "photo" ? 0 : view === "details" ? 1 : 2)
-                          ? "active"
-                          : ""
-                      }
-                      aria-current={
-                        index ===
-                        (view === "photo" ? 0 : view === "details" ? 1 : 2)
-                          ? "step"
-                          : undefined
-                      }
-                    >
-                      <span>{index + 1}</span>
-                      {label}
-                    </li>
-                  ))}
-                </ol>
-              </div>
+                  <span>{index + 1}</span>
+                  {label}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {view === "photo" && (
+          <section className="photo-view">
+            <div className="page-intro">
+              <span className="eyebrow">01 / CAPTURE</span>
+              <h1 ref={heading} tabIndex={-1}>
+                What’s in the way?
+              </h1>
+              <p>Frame the barrier and a little of the space around it.</p>
+            </div>
+            <div className={`photo-stage ${image ? "has-photo" : ""}`}>
+              {image ? (
+                <img src={image} alt="Your selected barrier photo" />
+              ) : (
+                <>
+                  <ScanLine size={53} strokeWidth={0.9} />
+                  <span>Your next step starts here.</span>
+                </>
+              )}
+              <i className="scan-corner tl" />
+              <i className="scan-corner tr" />
+              <i className="scan-corner bl" />
+              <i className="scan-corner br" />
+              {processing && (
+                <div className="processing-overlay">
+                  <span className="spinner" />
+                  Preparing your photo…
+                </div>
+              )}
+            </div>
+            <div className="photo-buttons">
+              <label className="button-primary camera-input">
+                <Camera size={18} /> Take a photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  aria-label="Take a photo"
+                  onChange={(event) => void preparePhoto(event)}
+                  disabled={processing}
+                />
+              </label>
+              <label className="button-secondary camera-input">
+                <ImagePlus size={18} /> Photo library
+                <input
+                  type="file"
+                  accept="image/*"
+                  aria-label="Choose a photo from your library"
+                  onChange={(event) => void preparePhoto(event)}
+                  disabled={processing}
+                />
+              </label>
+            </div>
+            {image && (
+              <button
+                className="text-button centered"
+                onClick={() => setView("details")}
+              >
+                Use this photo <ArrowRight size={15} />
+              </button>
             )}
-            {view === "photo" && (
-              <section className="photo-view">
-                <div className="page-intro">
-                  <span className="eyebrow">01 / CAPTURE</span>
-                  <h1 ref={heading} tabIndex={-1}>
-                    What’s in the way?
-                  </h1>
-                  <p>Frame the barrier and a little of the space around it.</p>
-                </div>
-                <div className={`photo-stage ${image ? "has-photo" : ""}`}>
-                  {image ? (
-                    <img src={image} alt="Your selected barrier photo" />
-                  ) : (
-                    <>
-                      <ScanLine size={53} strokeWidth={0.9} />
-                      <span>Your next step starts here.</span>
-                    </>
-                  )}
-                  <i className="scan-corner tl" />
-                  <i className="scan-corner tr" />
-                  <i className="scan-corner bl" />
-                  <i className="scan-corner br" />
-                  {processing && (
-                    <div className="processing-overlay">
-                      <span className="spinner" />
-                      Preparing your photo…
-                    </div>
-                  )}
-                </div>
-                <div className="photo-buttons">
-                  <label className="button-primary camera-input">
-                    <Camera size={18} /> Take a photo
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      aria-label="Take a photo"
-                      onChange={(event) => void preparePhoto(event)}
-                      disabled={processing}
-                    />
-                  </label>
-                  <label className="button-secondary camera-input">
-                    <ImagePlus size={18} /> Photo library
-                    <input
-                      type="file"
-                      accept="image/*"
-                      aria-label="Choose a photo from your library"
-                      onChange={(event) => void preparePhoto(event)}
-                      disabled={processing}
-                    />
-                  </label>
-                </div>
-                {image && (
-                  <button
-                    className="text-button centered"
-                    onClick={() => setView("details")}
-                  >
-                    Use this photo <ArrowRight size={15} />
-                  </button>
-                )}
-                {error && (
-                  <p className="error" role="alert">
-                    {error}
-                  </p>
-                )}
-                <p className="privacy-caption">
-                  <ShieldCheck size={13} /> Avoid faces, license plates, and
-                  private addresses.
-                </p>
-              </section>
+            {error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
             )}
+            <p className="privacy-caption">
+              <ShieldCheck size={13} /> Avoid faces, license plates, and private
+              addresses.
+            </p>
+          </section>
+        )}
 
-            {view === "details" && (
-              <section className="details-view">
-                <div className="page-intro">
-                  <span className="eyebrow">02 / A LITTLE CONTEXT</span>
-                  <h1 ref={heading} tabIndex={-1}>
-                    Keep it simple.
-                  </h1>
-                  <p>
-                    Confirm the place and what you noticed. We’ll draft the
-                    report.
-                  </p>
-                </div>
-                <form
-                  onSubmit={(event) => void generate(event)}
-                  className="details-layout"
-                >
-                  <div className="details-photo-panel">
-                    <img src={image} alt="The barrier you’re reporting" />
-                    <button
-                      type="button"
-                      className="photo-edit"
-                      onClick={() => setView("photo")}
-                    >
-                      <Camera size={14} /> Change photo
-                    </button>
-                    <div className="photo-private">
-                      <ShieldCheck size={12} /> Your photo stays on this device
-                      until you share.
-                    </div>
-                  </div>
-                  <div className="details-fields">
-                    <fieldset className="category-field">
-                      <legend>What’s the barrier?</legend>
-                      <div className="category-options">
-                        {categories.map((item) => (
-                          <button
-                            key={item}
-                            type="button"
-                            aria-pressed={category === item}
-                            className={category === item ? "chosen" : ""}
-                            onClick={() => setCategory(item)}
-                          >
-                            {item === "Other" ? "Something else" : item}
-                            {category === item && <Check size={13} />}
-                          </button>
-                        ))}
-                      </div>
-                    </fieldset>
-                    {category === "Other" && (
-                      <label className="field-label">
-                        Give it a short name{" "}
-                        <span className="optional">optional</span>
-                        <input
-                          placeholder="What kind of barrier did you notice?"
-                          value={customCategory}
-                          onChange={(event) =>
-                            setCustomCategory(event.target.value)
-                          }
-                          maxLength={90}
-                        />
-                      </label>
-                    )}
-                    <div className="field-heading">
-                      <label htmlFor="report-place">Where is it?</label>
-                      <button
-                        type="button"
-                        className="text-button"
-                        onClick={addLocation}
-                        disabled={locating}
-                      >
-                        <Crosshair size={13} />
-                        {locating ? "Finding location…" : "Use GPS"}
-                      </button>
-                    </div>
-                    <input
-                      id="report-place"
-                      className="standalone-input"
-                      placeholder="Building, entrance, or intersection"
-                      value={place}
-                      onChange={(event) => setPlace(event.target.value)}
-                      required
-                      maxLength={200}
-                    />
-                    {coordinates && (
-                      <p className="gps-caption">
-                        <MapPin size={11} /> {coordinates}{" "}
-                        <button
-                          type="button"
-                          onClick={() => setCoordinates("")}
-                        >
-                          Remove pin
-                        </button>
-                      </p>
-                    )}
-                    <label className="field-label">
-                      Anything to add?{" "}
-                      <span className="optional">optional</span>
-                      <textarea
-                        value={note}
-                        onChange={(event) => setNote(event.target.value)}
-                        placeholder="For example: bins are blocking the ramp beside the entrance."
-                        rows={3}
-                        maxLength={800}
-                      />
-                    </label>
-                    <div className="recipient-inline">
-                      <Representative area={reportArea} compact />
-                      <button
-                        type="button"
-                        className="text-button"
-                        onClick={() => setAreaModal("report")}
-                      >
-                        {reportArea?.representative ? "Change" : "Find"}
-                        <ChevronRight size={13} />
-                      </button>
-                    </div>
-                    <p className="fine-print">
-                      {coordinates
-                        ? reportArea?.representative
-                          ? "Recipient matched to this GPS location. Verify before sharing."
-                          : "GPS pin added. Choose a representative for this location before sharing."
-                        : "Recipient uses your saved area. Change it if this report is somewhere else."}
-                    </p>
-                    {error && (
-                      <p className="error" role="alert">
-                        {error}
-                      </p>
-                    )}
-                    <button
-                      className="button-primary full"
-                      disabled={saving || locating || !category}
-                    >
-                      <FileText size={16} />
-                      {saving ? "Preparing report…" : "Generate brief report"}
-                      <ArrowRight size={16} />
-                    </button>
-                    <p className="draft-note">
-                      Drafted from your selected barrier, place, and note.
-                      Review before sharing.
-                    </p>
-                  </div>
-                </form>
-              </section>
-            )}
-
-            {view === "review" && current && (
-              <section className="review-view">
-                <div className="page-intro">
-                  <span className="eyebrow">03 / READY TO SHARE</span>
-                  <h1 ref={heading} tabIndex={-1}>
-                    A photo. A place.
-                    <br />
-                    <span>A point made.</span>
-                  </h1>
-                  <p>Review your report, then choose how to send it.</p>
-                </div>
-                <div className="review-layout">
-                  <div className="report-paper">
-                    <div className="report-paper-header">
-                      <span>
-                        <ScanLine size={17} /> AccessLens report
-                      </span>
-                      <small>{displayDate(current.created)}</small>
-                    </div>
-                    {current.image && (
-                      <img
-                        className="review-photo"
-                        src={current.image}
-                        alt={`${current.category} at ${current.place}`}
-                      />
-                    )}
-                    <div className="report-paper-content">
-                      <span className="report-category">
-                        {current.category}
-                      </span>
-                      <p className="report-place">
-                        <MapPin size={14} />
-                        {current.place}
-                      </p>
-                      <label
-                        className="field-label report-text-label"
-                        htmlFor="report-summary"
-                      >
-                        Your brief report{" "}
-                        <span className="optional">editable</span>
-                      </label>
-                      <textarea
-                        id="report-summary"
-                        className="summary-editor"
-                        value={summary}
-                        onChange={(event) => setSummary(event.target.value)}
-                        onBlur={() => {
-                          const report = reviewedReport();
-                          if (report && report.summary !== current.summary) {
-                            setCurrent(report);
-                            void persist(report);
-                          }
-                        }}
-                        rows={9}
-                        maxLength={4000}
-                      />
-                      <div className="report-attachments">
-                        <span>
-                          <ImagePlus size={12} />{" "}
-                          {current.image ? "1 photo" : "Photo unavailable"}
-                        </span>
-                        <span>
-                          <MapPin size={12} /> Place included
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="send-panel" ref={sendPanel}>
-                    <span className="eyebrow">TO YOUR REPRESENTATIVE</span>
-                    <Representative area={reportArea} compact />
-                    <button
-                      className="text-button"
-                      onClick={() => setAreaModal("report")}
-                    >
-                      {recipient
-                        ? "Change representative"
-                        : "Find my representative"}
-                      <ArrowRight size={14} />
-                    </button>
-                    <div className="send-divider" />
-                    <div className="sender-card">
-                      <span className="signature-icon">
-                        <UserRound size={18} />
-                      </span>
-                      <div>
-                        <small>SIGNED BY</small>
-                        <b>{current.sender?.name || "No signature added"}</b>
-                        <span>
-                          {current.sender?.email ||
-                            "You can add contact details in the report text."}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      className="button-primary full share-button"
-                      onClick={() => void share()}
-                      disabled={sharing || !summary.trim()}
-                    >
-                      <Send size={18} />
-                      {sharing ? "Opening share sheet…" : "Send report"}
-                    </button>
-                    <p className="share-explainer">
-                      Opens sharing with your photo, report, and signature.
-                      Choose Mail and address it using the official contact
-                      options below. Your saved email doesn’t sign you into
-                      Mail.
-                    </p>
-                    <a
-                      className="button-secondary full"
-                      href={contactUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {recipient
-                        ? "Open official representative page"
-                        : "Find official contact page"}
-                      <ExternalLink size={14} />
-                    </a>
-                    <p className="fine-print">
-                      {recipient
-                        ? "The House Clerk page links to your representative’s official website and contact options."
-                        : "Use the official House lookup to find your office. No representative has been matched yet."}
-                    </p>
-                    <details className="share-alternatives">
-                      <summary>Copy, save, or attach manually</summary>
-                      <div>
-                        <button
-                          className="button-secondary"
-                          onClick={() => void copy()}
-                        >
-                          <Copy size={14} /> Copy report
-                        </button>
-                        <button
-                          className="button-secondary"
-                          disabled={!current.image}
-                          onClick={() => {
-                            const report = reviewedReport();
-                            if (report) downloadPhoto(report);
-                          }}
-                        >
-                          <Download size={14} /> Save photo
-                        </button>
-                        <button
-                          className="text-button"
-                          onClick={() => {
-                            const report = reviewedReport();
-                            if (report) downloadReport(report);
-                          }}
-                        >
-                          <FileText size={14} /> Download photo + report
-                          document
-                        </button>
-                        <p className="fine-print">
-                          For contact forms, copy the text and attach the saved
-                          photo if the form allows attachments.
-                        </p>
-                      </div>
-                    </details>
-                    <div className="send-note">
-                      <ShieldCheck size={16} />
-                      <p>
-                        You stay in control. Sharing opens another app; it
-                        doesn’t confirm receipt by an office.
-                      </p>
-                    </div>
-                    {error && (
-                      <p className="error" role="alert">
-                        {error}
-                      </p>
-                    )}
-                    <button
-                      className="text-button new-report-link"
-                      onClick={newReport}
-                    >
-                      <Camera size={14} /> Report another barrier
-                    </button>
-                    <button
-                      className="text-button delete-link"
-                      onClick={() => setConfirmation("report")}
-                    >
-                      <Trash2 size={13} /> Delete report
-                    </button>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {view === "reports" && (
-              <section className="reports-view">
-                <div className="page-intro">
-                  <span className="eyebrow">SAVED ON THIS DEVICE</span>
-                  <h1 ref={heading} tabIndex={-1}>
-                    Your observations.
-                  </h1>
-                  <p>One barrier per report. Ready when you need them.</p>
-                </div>
+        {view === "details" && (
+          <section className="details-view">
+            <div className="page-intro">
+              <span className="eyebrow">02 / A LITTLE CONTEXT</span>
+              <h1 ref={heading} tabIndex={-1}>
+                Keep it simple.
+              </h1>
+              <p>
+                Confirm the place and what you noticed. We’ll draft the report.
+              </p>
+            </div>
+            <form
+              onSubmit={(event) => void generate(event)}
+              className="details-layout"
+            >
+              <div className="details-photo-panel">
+                <img src={image} alt="The barrier you’re reporting" />
                 <button
-                  className="button-primary reports-new"
-                  onClick={newReport}
+                  type="button"
+                  className="photo-edit"
+                  onClick={() => setView("photo")}
                 >
-                  <Camera size={17} /> New report
+                  <Camera size={14} /> Change photo
                 </button>
-                {loading ? (
-                  <div className="empty-state">
-                    <span className="spinner" />
-                    Opening your reports…
-                  </div>
-                ) : reports.length === 0 ? (
-                  <div className="empty-state">
-                    <span className="empty-symbol">
-                      <FileText size={31} strokeWidth={1.1} />
-                    </span>
-                    <h2>A place for what you notice.</h2>
-                    <p>Take your first photo to create a brief report.</p>
-                    <button className="button-primary" onClick={newReport}>
-                      Take a photo <Camera size={16} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="report-list">
-                    {reports.map((report) => (
+                <div className="photo-private">
+                  <ShieldCheck size={12} /> Your photo stays on this device
+                  until you share.
+                </div>
+              </div>
+              <div className="details-fields">
+                <fieldset className="category-field">
+                  <legend>What’s the barrier?</legend>
+                  <div className="category-options">
+                    {categories.map((item) => (
                       <button
-                        className="report-list-item"
-                        key={report.id}
-                        onClick={() => openReport(report)}
+                        key={item}
+                        type="button"
+                        aria-pressed={category === item}
+                        className={category === item ? "chosen" : ""}
+                        onClick={() => setCategory(item)}
                       >
-                        {report.image ? (
-                          <img src={report.image} alt="" />
-                        ) : (
-                          <span className="no-photo">
-                            <FileText size={25} />
-                          </span>
-                        )}
-                        <span>
-                          <small>
-                            {displayDate(report.created)}
-                            <i />{" "}
-                            {report.status === "Shared"
-                              ? "Shared to an app"
-                              : "Draft"}
-                          </small>
-                          <b>{report.category}</b>
-                          <span>{report.place}</span>
-                        </span>
-                        <ChevronRight size={18} />
+                        {item === "Other" ? "Something else" : item}
+                        {category === item && <Check size={13} />}
                       </button>
                     ))}
                   </div>
+                </fieldset>
+                {category === "Other" && (
+                  <label className="field-label">
+                    Give it a short name{" "}
+                    <span className="optional">optional</span>
+                    <input
+                      placeholder="What kind of barrier did you notice?"
+                      value={customCategory}
+                      onChange={(event) =>
+                        setCustomCategory(event.target.value)
+                      }
+                      maxLength={90}
+                    />
+                  </label>
                 )}
-                <p className="privacy-caption">
-                  <ShieldCheck size={13} /> Stored locally. Download important
-                  reports before clearing browser data.
-                </p>
-              </section>
-            )}
-
-            {view === "settings" && (
-              <section className="settings-view">
-                <div className="page-intro">
-                  <span className="eyebrow">MAKE IT YOURS</span>
-                  <h1 ref={heading} tabIndex={-1}>
-                    Your corner.
-                  </h1>
-                  <p>Your details, your neighborhood, your voice.</p>
-                </div>
-                <div className="settings-group">
+                <div className="field-heading">
+                  <label htmlFor="report-place">Where is it?</label>
                   <button
-                    onClick={() => {
-                      setError("");
-                      setContactDraft(profile);
-                      setProfileModal(true);
-                    }}
+                    type="button"
+                    className="text-button"
+                    onClick={addLocation}
+                    disabled={locating}
                   >
-                    <span className="settings-icon">
-                      <UserRound size={21} />
-                    </span>
-                    <span>
-                      <b>{profile.name || "Your name & email"}</b>
-                      <small>
-                        {profile.email || "Set up your report signature"}
-                      </small>
-                    </span>
-                    <ChevronRight size={18} />
+                    <Crosshair size={13} />
+                    {locating ? "Finding location…" : "Use GPS"}
                   </button>
                 </div>
-                <div className="settings-group">
-                  <button onClick={() => setAreaModal("profile")}>
-                    <span className="settings-icon">
-                      <MapPin size={21} />
-                    </span>
-                    <span>
-                      <b>Your area</b>
-                      <small>{area?.label || "Choose your area"}</small>
-                    </span>
-                    <ChevronRight size={18} />
-                  </button>
-                  <div className="settings-representative">
-                    <Representative area={area} compact />
-                  </div>
-                </div>
-                <div className="settings-group">
+                <input
+                  id="report-place"
+                  className="standalone-input"
+                  placeholder="Building, entrance, or intersection"
+                  value={place}
+                  onChange={(event) => setPlace(event.target.value)}
+                  required
+                  maxLength={200}
+                />
+                {coordinates && (
+                  <p className="gps-caption">
+                    <MapPin size={11} /> {coordinates}{" "}
+                    <button type="button" onClick={() => setCoordinates("")}>
+                      Remove pin
+                    </button>
+                  </p>
+                )}
+                <label className="field-label">
+                  Anything to add? <span className="optional">optional</span>
+                  <textarea
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    placeholder="For example: bins are blocking the ramp beside the entrance."
+                    rows={3}
+                    maxLength={800}
+                  />
+                </label>
+                <div className="recipient-inline">
+                  <Representative area={reportArea} compact />
                   <button
-                    onClick={() => {
-                      setView("home");
-                      setShowIntro(true);
-                      setLaunchStarted(false);
-                      setShowSplash(true);
-                    }}
+                    type="button"
+                    className="text-button"
+                    onClick={() => setAreaModal("report")}
                   >
-                    <span className="settings-icon">
-                      <Sparkles size={21} />
-                    </span>
-                    <span>
-                      <b>Replay the introduction</b>
-                      <small>A little perspective, in motion</small>
-                    </span>
-                    <ChevronRight size={18} />
-                  </button>
-                  <button onClick={() => setPrivacyModal(true)}>
-                    <span className="settings-icon">
-                      <ShieldCheck size={21} />
-                    </span>
-                    <span>
-                      <b>Privacy & how it works</b>
-                      <small>Know what stays on your device</small>
-                    </span>
-                    <ChevronRight size={18} />
+                    {reportArea?.representative ? "Change" : "Find"}
+                    <ChevronRight size={13} />
                   </button>
                 </div>
-                <p className="version-note">
-                  AccessLens · Built to help make access visible.
-                </p>
-              </section>
-            )}
-            {storageWarning && (
-              <p className="storage-warning" role="status">
-                {storageWarning}
-              </p>
-            )}
-          </main>
-          {view === "review" && current && (
-            <div className="mobile-share-dock">
-              <button
-                className="dock-recipient"
-                onClick={() => setAreaModal("report")}
-              >
-                <span>SHARE WITH</span>
-                <b>{recipient || "Choose representative"}</b>
-              </button>
-              <button
-                className="button-primary"
-                onClick={() => void share()}
-                disabled={sharing || !summary.trim()}
-              >
-                <Send size={17} />
-                {sharing ? "Opening…" : "Send report"}
-              </button>
-            </div>
-          )}
-          {!isFlow && (
-            <nav className="mobile-nav" aria-label="App navigation">
-              <button
-                aria-current={view === "home" ? "page" : undefined}
-                onClick={() => setView("home")}
-              >
-                <Home size={20} />
-                <span>Home</span>
-              </button>
-              <button
-                aria-current={view === "reports" ? "page" : undefined}
-                onClick={() => setView("reports")}
-              >
-                <FileText size={20} />
-                <span>Reports</span>
-              </button>
-              <button
-                aria-current={view === "settings" ? "page" : undefined}
-                onClick={() => setView("settings")}
-              >
-                <Settings2 size={20} />
-                <span>Settings</span>
-              </button>
-            </nav>
-          )}
-          <footer className="app-footer">
-            <span>AccessLens</span>
-            <button onClick={() => setPrivacyModal(true)}>
-              <ShieldCheck size={12} /> Private by default
-            </button>
-          </footer>
-          {toast && (
-            <div className="toast" role="status">
-              <Check size={16} />
-              {toast}
-            </div>
-          )}
-          {areaModal && (
-            <Modal
-              title={
-                areaModal === "report"
-                  ? "Choose this report’s area"
-                  : "Your area"
-              }
-              onClose={() => setAreaModal(null)}
-            >
-              <p className="modal-description">
-                Find the representative for the area you choose.
-              </p>
-              <AreaPicker
-                initial={areaModal === "report" ? reportArea : area}
-                onChoose={(next) => {
-                  if (areaModal === "report") {
-                    setReportArea(next);
-                    if (current) {
-                      const updated = { ...current, summary, recipient: next };
-                      const text = retargetSummary(
-                        summary,
-                        current.recipient?.representative,
-                        next.representative,
-                      );
-                      setSummary(text);
-                      updated.summary = text;
-                      setCurrent(updated);
-                      void persist(updated);
-                    }
-                  } else rememberArea(next);
-                  setAreaModal(null);
-                  setToast("Area updated.");
-                }}
-              />
-            </Modal>
-          )}
-          {profileModal && (
-            <Modal
-              title="Your report signature"
-              onClose={() => {
-                setContactDraft(profile);
-                setProfileModal(false);
-                setError("");
-              }}
-            >
-              <form
-                className="profile-form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (
-                    !contactDraft.name.trim() ||
-                    !validEmail(contactDraft.email.trim())
-                  ) {
-                    setError(
-                      "Add a name and an email address like you@example.com.",
-                    );
-                    return;
-                  }
-                  rememberProfile(contactDraft);
-                  setProfileModal(false);
-                  setError("");
-                  setToast("Signature saved for new reports.");
-                }}
-              >
-                <p className="modal-description">
-                  Added to new reports automatically. Saved reports keep their
-                  original signature; you can edit their message directly.
-                </p>
-                <label htmlFor="profile-name">Your name</label>
-                <input
-                  id="profile-name"
-                  name="name"
-                  autoComplete="name"
-                  required
-                  maxLength={80}
-                  value={contactDraft.name}
-                  onChange={(event) =>
-                    setContactDraft({
-                      ...contactDraft,
-                      name: event.target.value,
-                    })
-                  }
-                />
-                <label htmlFor="profile-email">Your email</label>
-                <input
-                  id="profile-email"
-                  name="email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  required
-                  maxLength={254}
-                  value={contactDraft.email}
-                  onChange={(event) =>
-                    setContactDraft({
-                      ...contactDraft,
-                      email: event.target.value,
-                    })
-                  }
-                />
-                <p className="contact-hint">
-                  This email is included as contact info. Sending uses an
-                  account in your chosen mail app.
+                <p className="fine-print">
+                  {coordinates
+                    ? reportArea?.representative
+                      ? "Recipient matched to this GPS location. Verify before sharing."
+                      : "GPS pin added. Choose a representative for this location before sharing."
+                    : "Recipient uses your saved area. Change it if this report is somewhere else."}
                 </p>
                 {error && (
                   <p className="error" role="alert">
                     {error}
                   </p>
                 )}
-                <button className="button-primary full" type="submit">
-                  Save details <Check size={17} />
+                <button
+                  className="button-primary full"
+                  disabled={saving || locating || !category}
+                >
+                  <FileText size={16} />
+                  {saving ? "Preparing report…" : "Generate brief report"}
+                  <ArrowRight size={16} />
                 </button>
-                {(profile.name || profile.email) && (
-                  <button
-                    className="text-button remove-contact"
-                    type="button"
-                    onClick={() => {
-                      setProfileModal(false);
-                      setConfirmation("contact");
-                    }}
-                  >
-                    Remove saved contact details
-                  </button>
+                <p className="draft-note">
+                  Drafted from your selected barrier, place, and note. Review
+                  before sharing.
+                </p>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {view === "review" && current && (
+          <section className="review-view">
+            <div className="page-intro">
+              <span className="eyebrow">03 / READY TO SHARE</span>
+              <h1 ref={heading} tabIndex={-1}>
+                A photo. A place.
+                <br />
+                <span>A point made.</span>
+              </h1>
+              <p>Review your report, then choose how to send it.</p>
+            </div>
+            <div className="review-layout">
+              <div className="report-paper">
+                <div className="report-paper-header">
+                  <span>
+                    <ScanLine size={17} /> AccessLens report
+                  </span>
+                  <small>{displayDate(current.created)}</small>
+                </div>
+                {current.image && (
+                  <img
+                    className="review-photo"
+                    src={current.image}
+                    alt={`${current.category} at ${current.place}`}
+                  />
                 )}
-              </form>
-            </Modal>
-          )}
-          {confirmation && (
-            <Modal
-              title={
-                confirmation === "report"
-                  ? "Delete this report?"
-                  : "Remove saved contact details?"
-              }
-              onClose={() => setConfirmation(null)}
-            >
-              <p className="modal-description">
-                {confirmation === "report"
-                  ? "This removes this report and its photo from this device. Download a copy first if you want to keep it. This can’t be undone."
-                  : "Your saved name and email will be removed from this device. Existing reports keep their signatures; edit or delete those separately."}
-              </p>
-              <div className="confirmation-actions">
+                <div className="report-paper-content">
+                  <span className="report-category">{current.category}</span>
+                  <p className="report-place">
+                    <MapPin size={14} />
+                    {current.place}
+                  </p>
+                  <label
+                    className="field-label report-text-label"
+                    htmlFor="report-summary"
+                  >
+                    Your brief report <span className="optional">editable</span>
+                  </label>
+                  <textarea
+                    id="report-summary"
+                    className="summary-editor"
+                    value={summary}
+                    onChange={(event) => setSummary(event.target.value)}
+                    onBlur={() => {
+                      const report = reviewedReport();
+                      if (report && report.summary !== current.summary) {
+                        setCurrent(report);
+                        void persist(report);
+                      }
+                    }}
+                    rows={9}
+                    maxLength={4000}
+                  />
+                  <div className="report-attachments">
+                    <span>
+                      <ImagePlus size={12} />{" "}
+                      {current.image ? "1 photo" : "Photo unavailable"}
+                    </span>
+                    <span>
+                      <MapPin size={12} /> Place included
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="send-panel" ref={sendPanel}>
+                <span className="eyebrow">TO YOUR REPRESENTATIVE</span>
+                <Representative area={reportArea} compact />
                 <button
-                  className="button-secondary"
-                  onClick={() => setConfirmation(null)}
+                  className="text-button"
+                  onClick={() => setAreaModal("report")}
                 >
-                  Keep it
+                  {recipient
+                    ? "Change representative"
+                    : "Find my representative"}
+                  <ArrowRight size={14} />
+                </button>
+                <div className="send-divider" />
+                <div className="sender-card">
+                  <span className="signature-icon">
+                    <UserRound size={18} />
+                  </span>
+                  <div>
+                    <small>SIGNED BY</small>
+                    <b>{current.sender?.name || "No signature added"}</b>
+                    <span>
+                      {current.sender?.email ||
+                        "You can add contact details in the report text."}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className="button-primary full share-button"
+                  onClick={() => void share()}
+                  disabled={sharing || !summary.trim()}
+                >
+                  <Send size={18} />
+                  {sharing ? "Opening share sheet…" : "Send report"}
+                </button>
+                <p className="share-explainer">
+                  Opens sharing with your photo, report, and signature. Choose
+                  Mail and address it using the official contact options below.
+                  Your saved email doesn’t sign you into Mail.
+                </p>
+                <a
+                  className="button-secondary full"
+                  href={contactUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {recipient
+                    ? "Open official representative page"
+                    : "Find official contact page"}
+                  <ExternalLink size={14} />
+                </a>
+                <p className="fine-print">
+                  {recipient
+                    ? "The House Clerk page links to your representative’s official website and contact options."
+                    : "Use the official House lookup to find your office. No representative has been matched yet."}
+                </p>
+                <details className="share-alternatives">
+                  <summary>Copy, save, or attach manually</summary>
+                  <div>
+                    <button
+                      className="button-secondary"
+                      onClick={() => void copy()}
+                    >
+                      <Copy size={14} /> Copy report
+                    </button>
+                    <button
+                      className="button-secondary"
+                      disabled={!current.image}
+                      onClick={() => {
+                        const report = reviewedReport();
+                        if (report) downloadPhoto(report);
+                      }}
+                    >
+                      <Download size={14} /> Save photo
+                    </button>
+                    <button
+                      className="text-button"
+                      onClick={() => {
+                        const report = reviewedReport();
+                        if (report) downloadReport(report);
+                      }}
+                    >
+                      <FileText size={14} /> Download photo + report document
+                    </button>
+                    <p className="fine-print">
+                      For contact forms, copy the text and attach the saved
+                      photo if the form allows attachments.
+                    </p>
+                  </div>
+                </details>
+                <div className="send-note">
+                  <ShieldCheck size={16} />
+                  <p>
+                    You stay in control. Sharing opens another app; it doesn’t
+                    confirm receipt by an office.
+                  </p>
+                </div>
+                {error && (
+                  <p className="error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <button
+                  className="text-button new-report-link"
+                  onClick={newReport}
+                >
+                  <Camera size={14} /> Report another barrier
                 </button>
                 <button
-                  className="button-primary danger-button"
-                  onClick={() => {
-                    if (confirmation === "report") void removeCurrent();
-                    else {
-                      rememberProfile({ name: "", email: "" });
-                      setConfirmation(null);
-                      setToast(
-                        "Saved contact details removed. Existing reports unchanged.",
-                      );
-                    }
-                  }}
+                  className="text-button delete-link"
+                  onClick={() => setConfirmation("report")}
                 >
-                  {confirmation === "report"
-                    ? "Delete report & photo"
-                    : "Remove details"}
+                  <Trash2 size={13} /> Delete report
                 </button>
               </div>
-            </Modal>
-          )}
-          {privacyModal && (
-            <Modal
-              title="Privacy, in plain language."
-              onClose={() => setPrivacyModal(false)}
-            >
-              <div className="privacy-copy">
-                <h3>Your signature, ready when you are.</h3>
-                <p>
-                  Your name and email are saved in this browser and copied into
-                  new report messages. They aren’t an account login, aren’t
-                  verified, and aren’t added to a mailing list. You can change
-                  or remove them in Settings. Old reports keep the details
-                  already in their text. Sending uses an account signed into
-                  your chosen app, not permission granted by entering an address
-                  here.
-                </p>
-                <h3>Your photos stay with you.</h3>
-                <p>
-                  Reports and photos are saved in this browser on this device.
-                  They don’t sync between devices. Download important reports
-                  before clearing browser data.
-                </p>
-                <h3>You choose what to share.</h3>
-                <p>
-                  Sharing passes the photo, place, GPS pin if added, and your
-                  edited message to the app you choose. An official contact page
-                  opens separately. AccessLens never sends a report to an office
-                  automatically.
-                </p>
-                <h3>Location has one job.</h3>
-                <p>
-                  With your permission, a single GPS fix or public address is
-                  sent through our server to the U.S. Census geocoder to find
-                  your district. Member details come from the House Clerk. Our
-                  application doesn’t store lookup requests; hosting providers
-                  may retain normal request metadata. There is no background
-                  tracking.
-                </p>
-                <h3>Brief reports, reviewed by you.</h3>
-                <p>
-                  Reports are generated from the barrier category and details
-                  you provide. Photos aren’t analyzed by AI in this free
-                  version. Observations are not legal or accessibility
-                  compliance assessments. Congressional offices can help with
-                  advocacy or referrals; local repairs may need a city
-                  department or property owner.
-                </p>
+            </div>
+          </section>
+        )}
+
+        {view === "reports" && (
+          <section className="reports-view">
+            <div className="page-intro">
+              <span className="eyebrow">SAVED ON THIS DEVICE</span>
+              <h1 ref={heading} tabIndex={-1}>
+                Your observations.
+              </h1>
+              <p>One barrier per report. Ready when you need them.</p>
+            </div>
+            <button className="button-primary reports-new" onClick={newReport}>
+              <Camera size={17} /> New report
+            </button>
+            {loading ? (
+              <div className="empty-state">
+                <span className="spinner" />
+                Opening your reports…
               </div>
-            </Modal>
-          )}
+            ) : reports.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-symbol">
+                  <FileText size={31} strokeWidth={1.1} />
+                </span>
+                <h2>A place for what you notice.</h2>
+                <p>Take your first photo to create a brief report.</p>
+                <button className="button-primary" onClick={newReport}>
+                  Take a photo <Camera size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="report-list">
+                {reports.map((report) => (
+                  <button
+                    className="report-list-item"
+                    key={report.id}
+                    onClick={() => openReport(report)}
+                  >
+                    {report.image ? (
+                      <img src={report.image} alt="" />
+                    ) : (
+                      <span className="no-photo">
+                        <FileText size={25} />
+                      </span>
+                    )}
+                    <span>
+                      <small>
+                        {displayDate(report.created)}
+                        <i />{" "}
+                        {report.status === "Shared"
+                          ? "Shared to an app"
+                          : "Draft"}
+                      </small>
+                      <b>{report.category}</b>
+                      <span>{report.place}</span>
+                    </span>
+                    <ChevronRight size={18} />
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="privacy-caption">
+              <ShieldCheck size={13} /> Stored locally. Download important
+              reports before clearing browser data.
+            </p>
+          </section>
+        )}
+
+        {view === "settings" && (
+          <section className="settings-view">
+            <div className="page-intro">
+              <span className="eyebrow">MAKE IT YOURS</span>
+              <h1 ref={heading} tabIndex={-1}>
+                Your corner.
+              </h1>
+              <p>Your details, your neighborhood, your voice.</p>
+            </div>
+            <div className="settings-group">
+              <button
+                onClick={() => {
+                  setError("");
+                  setContactDraft(profile);
+                  setProfileModal(true);
+                }}
+              >
+                <span className="settings-icon">
+                  <UserRound size={21} />
+                </span>
+                <span>
+                  <b>{profile.name || "Your name & email"}</b>
+                  <small>
+                    {profile.email || "Set up your report signature"}
+                  </small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            <div className="settings-group">
+              <button onClick={() => setAreaModal("profile")}>
+                <span className="settings-icon">
+                  <MapPin size={21} />
+                </span>
+                <span>
+                  <b>Your area</b>
+                  <small>{area?.label || "Choose your area"}</small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+              <div className="settings-representative">
+                <Representative area={area} compact />
+              </div>
+            </div>
+            <div className="settings-group">
+              <button
+                onClick={() => {
+                  setContactDraft(profile);
+                  setStep(1);
+                  setView("onboard");
+                  setShowSplash(true);
+                }}
+              >
+                <span className="settings-icon">
+                  <Sparkles size={21} />
+                </span>
+                <span>
+                  <b>Take the tour again</b>
+                  <small>A fresh start, whenever you need it</small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+              <button onClick={() => setPrivacyModal(true)}>
+                <span className="settings-icon">
+                  <ShieldCheck size={21} />
+                </span>
+                <span>
+                  <b>Privacy & how it works</b>
+                  <small>Know what stays on your device</small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            <p className="version-note">
+              AccessLens · Built to help make access visible.
+            </p>
+          </section>
+        )}
+        {storageWarning && view !== "onboard" && (
+          <p className="storage-warning" role="status">
+            {storageWarning}
+          </p>
+        )}
+      </main>
+      {view === "review" && current && (
+        <div className="mobile-share-dock">
+          <button
+            className="dock-recipient"
+            onClick={() => setAreaModal("report")}
+          >
+            <span>SHARE WITH</span>
+            <b>{recipient || "Choose representative"}</b>
+          </button>
+          <button
+            className="button-primary"
+            onClick={() => void share()}
+            disabled={sharing || !summary.trim()}
+          >
+            <Send size={17} />
+            {sharing ? "Opening…" : "Send report"}
+          </button>
         </div>
       )}
-    </>
+      {view !== "onboard" && !isFlow && (
+        <nav className="mobile-nav" aria-label="App navigation">
+          <button
+            aria-current={view === "home" ? "page" : undefined}
+            onClick={() => setView("home")}
+          >
+            <Home size={20} />
+            <span>Home</span>
+          </button>
+          <button
+            aria-current={view === "reports" ? "page" : undefined}
+            onClick={() => setView("reports")}
+          >
+            <FileText size={20} />
+            <span>Reports</span>
+          </button>
+          <button
+            aria-current={view === "settings" ? "page" : undefined}
+            onClick={() => setView("settings")}
+          >
+            <Settings2 size={20} />
+            <span>Settings</span>
+          </button>
+        </nav>
+      )}
+      <footer className="app-footer">
+        <span>AccessLens</span>
+        <button onClick={() => setPrivacyModal(true)}>
+          <ShieldCheck size={12} /> Private by default
+        </button>
+      </footer>
+      {toast && (
+        <div className="toast" role="status">
+          <Check size={16} />
+          {toast}
+        </div>
+      )}
+      {areaModal && (
+        <Modal
+          title={
+            areaModal === "report" ? "Choose this report’s area" : "Your area"
+          }
+          onClose={() => setAreaModal(null)}
+        >
+          <p className="modal-description">
+            Find the representative for the area you choose.
+          </p>
+          <AreaPicker
+            initial={areaModal === "report" ? reportArea : area}
+            onChoose={(next) => {
+              if (areaModal === "report") {
+                setReportArea(next);
+                if (current) {
+                  const updated = { ...current, summary, recipient: next };
+                  const text = retargetSummary(
+                    summary,
+                    current.recipient?.representative,
+                    next.representative,
+                  );
+                  setSummary(text);
+                  updated.summary = text;
+                  setCurrent(updated);
+                  void persist(updated);
+                }
+              } else rememberArea(next);
+              setAreaModal(null);
+              setToast("Area updated.");
+            }}
+          />
+        </Modal>
+      )}
+      {profileModal && (
+        <Modal
+          title="Your report signature"
+          onClose={() => {
+            setContactDraft(profile);
+            setProfileModal(false);
+            setError("");
+          }}
+        >
+          <form
+            className="profile-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (
+                !contactDraft.name.trim() ||
+                !validEmail(contactDraft.email.trim())
+              ) {
+                setError(
+                  "Add a name and an email address like you@example.com.",
+                );
+                return;
+              }
+              rememberProfile(contactDraft);
+              setProfileModal(false);
+              setError("");
+              setToast("Signature saved for new reports.");
+            }}
+          >
+            <p className="modal-description">
+              Added to new reports automatically. Saved reports keep their
+              original signature; you can edit their message directly.
+            </p>
+            <label htmlFor="profile-name">Your name</label>
+            <input
+              id="profile-name"
+              name="name"
+              autoComplete="name"
+              required
+              maxLength={80}
+              value={contactDraft.name}
+              onChange={(event) =>
+                setContactDraft({ ...contactDraft, name: event.target.value })
+              }
+            />
+            <label htmlFor="profile-email">Your email</label>
+            <input
+              id="profile-email"
+              name="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+              maxLength={254}
+              value={contactDraft.email}
+              onChange={(event) =>
+                setContactDraft({ ...contactDraft, email: event.target.value })
+              }
+            />
+            <p className="contact-hint">
+              This email is included as contact info. Sending uses an account in
+              your chosen mail app.
+            </p>
+            {error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            )}
+            <button className="button-primary full" type="submit">
+              Save details <Check size={17} />
+            </button>
+            {(profile.name || profile.email) && (
+              <button
+                className="text-button remove-contact"
+                type="button"
+                onClick={() => {
+                  setProfileModal(false);
+                  setConfirmation("contact");
+                }}
+              >
+                Remove saved contact details
+              </button>
+            )}
+          </form>
+        </Modal>
+      )}
+      {confirmation && (
+        <Modal
+          title={
+            confirmation === "report"
+              ? "Delete this report?"
+              : "Remove saved contact details?"
+          }
+          onClose={() => setConfirmation(null)}
+        >
+          <p className="modal-description">
+            {confirmation === "report"
+              ? "This removes this report and its photo from this device. Download a copy first if you want to keep it. This can’t be undone."
+              : "Your saved name and email will be removed from this device. Existing reports keep their signatures; edit or delete those separately."}
+          </p>
+          <div className="confirmation-actions">
+            <button
+              className="button-secondary"
+              onClick={() => setConfirmation(null)}
+            >
+              Keep it
+            </button>
+            <button
+              className="button-primary danger-button"
+              onClick={() => {
+                if (confirmation === "report") void removeCurrent();
+                else {
+                  rememberProfile({ name: "", email: "" });
+                  setConfirmation(null);
+                  setToast(
+                    "Saved contact details removed. Existing reports unchanged.",
+                  );
+                }
+              }}
+            >
+              {confirmation === "report"
+                ? "Delete report & photo"
+                : "Remove details"}
+            </button>
+          </div>
+        </Modal>
+      )}
+      {privacyModal && (
+        <Modal
+          title="Privacy, in plain language."
+          onClose={() => setPrivacyModal(false)}
+        >
+          <div className="privacy-copy">
+            <h3>Your signature, ready when you are.</h3>
+            <p>
+              Your name and email are saved in this browser and copied into new
+              report messages. They aren’t an account login, aren’t verified,
+              and aren’t added to a mailing list. You can change or remove them
+              in Settings. Old reports keep the details already in their text.
+              Sending uses an account signed into your chosen app, not
+              permission granted by entering an address here.
+            </p>
+            <h3>Your photos stay with you.</h3>
+            <p>
+              Reports and photos are saved in this browser on this device. They
+              don’t sync between devices. Download important reports before
+              clearing browser data.
+            </p>
+            <h3>You choose what to share.</h3>
+            <p>
+              Sharing passes the photo, place, GPS pin if added, and your edited
+              message to the app you choose. An official contact page opens
+              separately. AccessLens never sends a report to an office
+              automatically.
+            </p>
+            <h3>Location has one job.</h3>
+            <p>
+              With your permission, a single GPS fix or public address is sent
+              through our server to the U.S. Census geocoder to find your
+              district. Member details come from the House Clerk. Our
+              application doesn’t store lookup requests; hosting providers may
+              retain normal request metadata. There is no background tracking.
+            </p>
+            <h3>Brief reports, reviewed by you.</h3>
+            <p>
+              Reports are generated from the barrier category and details you
+              provide. Photos aren’t analyzed by AI in this free version.
+              Observations are not legal or accessibility compliance
+              assessments. Congressional offices can help with advocacy or
+              referrals; local repairs may need a city department or property
+              owner.
+            </p>
+          </div>
+        </Modal>
+      )}
+    </div>
   );
 }
