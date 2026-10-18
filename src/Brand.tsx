@@ -20,12 +20,18 @@ export function LensMark({ className = "" }: { className?: string }) {
   );
 }
 
-export function Splash({ onContinue }: { onContinue: () => void }) {
+export function Splash({
+  onContinue,
+  onReveal,
+}: {
+  onContinue: () => void;
+  onReveal: () => void;
+}) {
   const [leaving, setLeaving] = useState(false);
   const [buttonReady, setButtonReady] = useState(false);
   const exitTimer = useRef<number | undefined>(undefined);
   useEffect(() => {
-    const reveal = window.setTimeout(() => setButtonReady(true), 500);
+    const reveal = window.setTimeout(() => setButtonReady(true), 1100);
     return () => {
       window.clearTimeout(reveal);
       window.clearTimeout(exitTimer.current);
@@ -34,12 +40,13 @@ export function Splash({ onContinue }: { onContinue: () => void }) {
 
   function enterApp() {
     if (leaving) return;
+    onReveal();
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       onContinue();
       return;
     }
     setLeaving(true);
-    exitTimer.current = window.setTimeout(onContinue, 300);
+    exitTimer.current = window.setTimeout(onContinue, 780);
   }
 
   return (
