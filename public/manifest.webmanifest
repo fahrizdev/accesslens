@@ -1,12 +1,12 @@
 {
-  "name": "AccessLens — Make access visible",
+  "name": "AccessLens \u2014 Make access visible",
   "short_name": "AccessLens",
   "description": "Photo. Place. Brief report. Share accessibility barriers with your representative.",
-  "start_url": "/",
+  "start_url": "/app",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#fbfaf7",
-  "theme_color": "#fbfaf7",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "/icon.svg",

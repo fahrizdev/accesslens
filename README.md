@@ -8,7 +8,8 @@ The Vercel project is connected to this repository. Pushes to `main` automatical
 
 ## Working features
 
-- SF-style system typography, paper-white surfaces, cobalt and orange accents, and lightweight animated illustrations. Five-step first-run onboarding: welcome, name, email, area, and a ready screen confirming the report signature and representative. Existing users see this setup once after upgrading; it can be replayed from Settings or skipped.
+- A new luminous aperture identity, white surfaces, mauve-to-peach accents, native vector place illustrations, and animated transitions across the app. Opening `/` or `/app` shows only the centered glowing logo and a bottom arrow button. The launch screen stays until the user presses that button, then transitions into the welcome, name, email, area, and ready flow (or home after setup). The redesigned setup is shown once after upgrading (saved details are prefilled), can be skipped, and can be replayed from Settings. Reduced-motion preferences disable motion; the bottom button still controls entry.
+- Responsive camera capture, report details, editable review, saved reports, settings, and bottom sheets share the new design. The installed web app starts at `/app`; both entry URLs continue to work.
 - Name and email are saved locally and added to each new report’s sign-off. Settings supports editing/removing saved contact details; existing report snapshots keep their original signatures. Email format is checked, but inbox ownership/deliverability is not verified. This is not an email login, account, or mailing-list subscription.
 - Free district lookup using U.S. Census ACS2025 geography for the **119th Congress**, matched to the live House Clerk member directory. The Census Current geography already includes future 120th districts; this version deliberately avoids mixing those boundaries with current representatives. Update the selected vintage and district parser when Congress changes.
 - One photo per report. Choose a barrier type, enter a public location, optionally add a GPS pin and brief note, then generate an editable message.
@@ -25,7 +26,7 @@ npm ci
 npm start
 ```
 
-Open http://127.0.0.1:4173. This serves the production build plus the area endpoint. `npm run dev` starts Vite for UI-only work; use `npm start` to test the government lookup locally.
+Open http://127.0.0.1:4173/app. This serves the production build plus the area endpoint. `npm run dev` starts Vite for UI-only work; use `npm start` to test the government lookup locally.
 
 ## Deploy free on Vercel
 

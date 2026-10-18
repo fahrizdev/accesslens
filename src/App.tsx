@@ -9,6 +9,7 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUpRight,
   Camera,
   Check,
   ChevronRight,
@@ -20,7 +21,6 @@ import {
   Home,
   ImagePlus,
   MapPin,
-  Mail,
   ScanLine,
   Send,
   Settings2,
@@ -50,6 +50,9 @@ import {
   type SenderProfile,
 } from "./profile";
 
+import { LensMark, Splash, WelcomeGallery } from "./Brand";
+import Onboarding from "./Onboarding";
+
 type View =
   | "onboard"
   | "home"
@@ -77,63 +80,6 @@ const displayDate = (value: string) =>
     day: "numeric",
   });
 
-function Ambient() {
-  return (
-    <div className="ambient" aria-hidden="true">
-      <div className="light-cloud blue-cloud" />
-      <div className="light-cloud warm-cloud" />
-      <div className="surface-grain" />
-    </div>
-  );
-}
-function ScanDemo() {
-  return (
-    <div className="scan-demo" aria-hidden="true">
-      <div className="demo-scene">
-        <svg viewBox="0 0 320 220" fill="none">
-          <path d="M0 162L320 126V220H0Z" fill="#e1e3e9" />
-          <path d="M0 123L320 102V126L0 162Z" fill="#f0f1f5" />
-          <path d="M151 76L235 69V127L151 141Z" fill="#c3c9d3" />
-          <path d="M151 76L173 58L258 52L235 69Z" fill="#dde1e7" />
-          <path d="M235 69L258 52V111L235 127Z" fill="#aeb8c5" />
-          <path
-            d="M159 72L244 59"
-            stroke="#f8f9fb"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-          <path
-            d="M145 145L193 165L284 151"
-            stroke="#a6b7d5"
-            strokeWidth="3"
-            strokeDasharray="5 6"
-          />
-          <path
-            d="M50 101V160M45 105L101 100V157"
-            stroke="#c9cdd5"
-            strokeWidth="5"
-          />
-          <path d="M0 187L320 151" stroke="#cbd0da" strokeWidth="2" />
-        </svg>
-        <span className="scan-corner tl" />
-        <span className="scan-corner tr" />
-        <span className="scan-corner bl" />
-        <span className="scan-corner br" />
-        <div className="scan-sweep" />
-      </div>
-      <div className="demo-caption">
-        <span className="demo-caption-icon">
-          <Camera size={18} />
-        </span>
-        <div>
-          <b>Make the barrier visible.</b>
-          <small>One photo is all it takes to start.</small>
-        </div>
-        <span className="sample-label">Example</span>
-      </div>
-    </div>
-  );
-}
 function Representative({
   area,
   compact = false,
@@ -375,6 +321,7 @@ function AreaPicker({
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [profile, setProfile] = useState<SenderProfile>(() =>
     normalizeProfile(readPreference(PROFILE_KEY, null)),
   );
@@ -385,7 +332,7 @@ export default function App() {
   );
   const [area, setArea] = useState<Area | null>(readArea);
   const [view, setView] = useState<View>(() =>
-    readPreference("accesslens-onboarding-v3", false) ? "home" : "onboard",
+    readPreference("accesslens-onboarding-v4", false) ? "home" : "onboard",
   );
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -428,7 +375,7 @@ export default function App() {
       gpsVersion.current++;
       setLocating(false);
     }
-  }, [view, step]);
+  }, [view, step, showSplash]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(""), 4000);
@@ -444,7 +391,7 @@ export default function App() {
   }
   function finishOnboarding(openCamera = false) {
     try {
-      localStorage.setItem("accesslens-onboarding-v3", "true");
+      localStorage.setItem("accesslens-onboarding-v4", "true");
     } catch {
       /* Onboarding may repeat in restricted browsing. */
     }
@@ -755,9 +702,9 @@ export default function App() {
   const contactUrl =
     reportArea?.contactUrl ||
     "https://www.house.gov/representatives/find-your-representative";
+  if (showSplash) return <Splash onContinue={() => setShowSplash(false)} />;
   return (
     <div className={`app-shell view-${view}`}>
-      <Ambient />
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -767,10 +714,8 @@ export default function App() {
           aria-label="AccessLens home"
           onClick={() => (view === "onboard" ? moveStep(0) : navigate("home"))}
         >
-          <span className="brand-symbol">
-            <ScanLine size={23} strokeWidth={2.1} />
-          </span>
-          <span>AccessLens</span>
+          <LensMark />
+          <span>accesslens</span>
         </button>
         {view === "onboard" ? (
           <button className="header-skip" onClick={() => finishOnboarding()}>
@@ -800,425 +745,128 @@ export default function App() {
         className={`main-content ${isFlow ? "flow-content" : ""}`}
       >
         {view === "onboard" && (
-          <section className="onboarding">
-            <div
-              className="onboarding-progress"
-              aria-label="Onboarding progress"
-            >
-              {["Hello", "Your name", "Your email", "Your area", "All set"].map(
-                (label, index) => (
-                  <button
-                    key={label}
-                    aria-label={`Step ${index + 1}: ${label}`}
-                    aria-current={step === index ? "step" : undefined}
-                    disabled={index > step}
-                    onClick={() => moveStep(index)}
-                  >
-                    <span className={index <= step ? "filled" : ""} />
-                    <small>{label}</small>
-                  </button>
-                ),
-              )}
-            </div>
-            <div
-              className={`onboarding-slide direction-${direction}`}
-              key={step}
-            >
-              {step === 0 && (
-                <>
-                  <div className="onboard-copy">
-                    <span className="eyebrow">
-                      A LITTLE PHOTO. A BETTER EVERYDAY.
-                    </span>
-                    <h1 ref={heading} tabIndex={-1}>
-                      Good change
-                      <br />
-                      <span>starts with you.</span>
-                    </h1>
-                    <p>
-                      A blocked ramp. A tricky entrance. Notice it, snap it, and
-                      give your representative something they can act on. Let’s
-                      make this yours first.
-                    </p>
-                  </div>
-                  <ScanDemo />
-                  <div className="onboard-feature-row">
-                    <span>
-                      <Camera size={16} /> One photo
-                    </span>
-                    <span>
-                      <MapPin size={16} /> A place
-                    </span>
-                    <span>
-                      <Send size={16} /> Your voice
-                    </span>
-                  </div>
-                </>
-              )}
-              {step === 1 && (
-                <>
-                  <div className="onboard-copy">
-                    <span className="eyebrow">FIRST, A PROPER HELLO</span>
-                    <h1 ref={heading} tabIndex={-1}>
-                      What should
-                      <br />
-                      <span>we call you?</span>
-                    </h1>
-                    <p>Your voice matters. Let’s put a name to it.</p>
-                  </div>
-                  <form
-                    id="onboarding-contact"
-                    className="contact-card"
-                    onSubmit={nextContactStep}
-                  >
-                    <div className="hello-sticker" aria-hidden="true">
-                      <span>hello, I’m</span>
-                      <b>{contactDraft.name.trim().split(/\s+/)[0] || "you"}</b>
-                      <Sparkles size={20} />
-                    </div>
-                    <label htmlFor="onboarding-name">Your name</label>
-                    <input
-                      id="onboarding-name"
-                      name="name"
-                      autoComplete="name"
-                      enterKeyHint="next"
-                      placeholder="The name you sign with"
-                      value={contactDraft.name}
-                      required
-                      maxLength={80}
-                      onChange={(event) => {
-                        event.target.setCustomValidity("");
-                        setContactDraft({
-                          ...contactDraft,
-                          name: event.target.value,
-                        });
-                      }}
-                    />
-                    <p className="contact-hint">
-                      We’ll sign your reports with this. You can change it
-                      anytime.
-                    </p>
-                  </form>
-                </>
-              )}
-              {step === 2 && (
-                <>
-                  <div className="onboard-copy">
-                    <span className="eyebrow">A WAY TO GET BACK TO YOU</span>
-                    <h1 ref={heading} tabIndex={-1}>
-                      And your
-                      <br />
-                      <span>email address?</span>
-                    </h1>
-                    <p>
-                      So an office knows where to reply. Enter an inbox you use.
-                    </p>
-                  </div>
-                  <form
-                    id="onboarding-contact"
-                    className="contact-card"
-                    onSubmit={nextContactStep}
-                  >
-                    <div className="mail-art" aria-hidden="true">
-                      <span className="mail-note">
-                        <span />
-                        <span />
-                        <b>
-                          {contactDraft.name.trim().split(/\s+/)[0] ||
-                            "Your voice"}
-                          <i>↗</i>
-                        </b>
-                      </span>
-                      <Mail size={85} strokeWidth={1.1} />
-                      <span className="mail-spark">✳</span>
-                    </div>
-                    <label htmlFor="onboarding-email">Your email</label>
-                    <input
-                      id="onboarding-email"
-                      name="email"
-                      type="email"
-                      inputMode="email"
-                      autoComplete="email"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      enterKeyHint="next"
-                      placeholder="you@example.com"
-                      required
-                      maxLength={254}
-                      value={contactDraft.email}
-                      onChange={(event) => {
-                        event.target.setCustomValidity("");
-                        setContactDraft({
-                          ...contactDraft,
-                          email: event.target.value,
-                        });
-                      }}
-                    />
-                    <p className="contact-hint">
-                      Included in your report, not added to a mailing list. This
-                      does not connect or verify your inbox.
-                    </p>
-                  </form>
-                </>
-              )}
-              {step === 3 && (
-                <>
-                  <div className="onboard-copy">
-                    <span className="eyebrow">MAKE IT LOCAL</span>
-                    <h1 ref={heading} tabIndex={-1}>
-                      Start with
-                      <br />
-                      <span>where you are.</span>
-                    </h1>
-                    <p>
-                      Your area helps us find the right representative. You
-                      choose what location to share.
-                    </p>
-                  </div>
-                  <div className="onboard-card">
-                    {area && (
-                      <div className="current-area">
-                        <MapPin size={16} />
-                        <div>
-                          <small>YOUR SAVED AREA</small>
-                          <b>{area.label}</b>
-                        </div>
-                        <Check size={16} />
-                      </div>
-                    )}
-                    <AreaPicker
-                      initial={area}
-                      onChoose={(next) => {
-                        rememberArea(next);
-                        moveStep(4);
-                      }}
-                    />
-                  </div>
-                </>
-              )}
-              {step === 4 && (
-                <>
-                  <div className="onboard-copy">
-                    <span className="eyebrow">
-                      YOU’RE IN. LET’S MAKE A DIFFERENCE.
-                    </span>
-                    <h1 ref={heading} tabIndex={-1}>
-                      {profile.name
-                        ? `All set, ${profile.name.split(/\s+/)[0]}.`
-                        : "You’re all set."}
-                      <br />
-                      <span>See it. Snap it. Send it.</span>
-                    </h1>
-                    <p>
-                      Your name and email will sign new reports automatically.
-                      Add a photo and a place, review the message, then tap Send
-                      report.
-                    </p>
-                  </div>
-                  <div className="onboard-card rep-onboard">
-                    <div className="signature-preview">
-                      <span className="signature-icon">
-                        <Send size={20} />
-                      </span>
-                      <div>
-                        <small>YOUR REPORTS, SIGNED</small>
-                        <b>{profile.name || "Your name — add in Settings"}</b>
-                        <span>{profile.email || "Email not added"}</span>
-                      </div>
-                      <button
-                        className="text-button"
-                        onClick={() => moveStep(1)}
-                      >
-                        Edit
-                      </button>
-                    </div>
-                    <Representative area={area} />
-                    {area?.representative ? (
-                      <>
-                        <div className="rep-detail">
-                          <MapPin size={15} />
-                          {area.label}
-                        </div>
-                        <div className="rep-detail">
-                          <ShieldCheck size={15} /> Matched using official
-                          government data
-                        </div>
-                        <p className="fine-print">
-                          Confirm this office serves your area. Local repairs
-                          may need a city department or property owner; your
-                          representative can help with a referral.
-                        </p>
-                        <button
-                          className="text-button"
-                          onClick={() => moveStep(3)}
-                        >
-                          Change area <ArrowRight size={14} />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <p className="muted">
-                          {area
-                            ? "We have your area, but no representative is selected yet."
-                            : "Choose an area to find your representative."}
-                        </p>
-                        <button
-                          className="button-secondary full"
-                          onClick={() => moveStep(3)}
-                        >
-                          Find my representative <Crosshair size={16} />
-                        </button>
-                        <p className="fine-print">
-                          You can also add this when you make your first report.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                  <p className="onboard-assurance">
-                    Send opens your phone’s sharing menu. Choose Mail and use an
-                    account already signed in there. Your saved email is contact
-                    info, not an inbox connection.
-                  </p>
-                </>
-              )}
-            </div>
-            <div className="onboarding-controls">
-              <button
-                className="back-control"
-                onClick={() => moveStep(step - 1)}
-                disabled={step === 0}
-              >
-                <ArrowLeft size={17} />
-                <span>Back</span>
-              </button>
-              <span className="step-counter">
-                {step + 1} <span>/ 5</span>
-              </span>
-              <button
-                className="button-primary"
-                type={step === 1 || step === 2 ? "submit" : "button"}
-                form={
-                  step === 1 || step === 2 ? "onboarding-contact" : undefined
-                }
-                onClick={(event) => {
-                  if (step === 1 || step === 2) return;
-                  event.preventDefault();
-                  if (step === 4) finishOnboarding();
-                  else moveStep(step + 1);
+          <Onboarding
+            step={step}
+            direction={direction}
+            profile={profile}
+            draft={contactDraft}
+            area={area}
+            setDraft={setContactDraft}
+            move={moveStep}
+            finish={finishOnboarding}
+            submit={nextContactStep}
+            areaPicker={
+              <AreaPicker
+                initial={area}
+                onChoose={(next) => {
+                  rememberArea(next);
+                  moveStep(4);
                 }}
-              >
-                {step === 0
-                  ? "Get started"
-                  : step === 4
-                    ? "Let’s go"
-                    : "Continue"}
-                <ArrowRight size={17} />
-              </button>
-            </div>
-          </section>
+              />
+            }
+          />
         )}
 
         {view === "home" && (
           <section className="home-view">
-            <div className="home-intro">
-              <div className="greeting-pill">
-                <span className="greeting-dot" />
-                {profile.name
-                  ? `Hey, ${profile.name.split(/\s+/)[0]}. Good to see you.`
-                  : "A little attention goes a long way."}
+            <div className="home-hero">
+              <div className="home-intro">
+                <div className="greeting-pill">
+                  <span className="greeting-dot" />
+                  {profile.name
+                    ? `Good to see you, ${profile.name.split(/\s+/)[0]}.`
+                    : "A little attention goes a long way."}
+                </div>
+                <h1 ref={heading} tabIndex={-1}>
+                  See a barrier.
+                  <br />
+                  <span className="gradient-text">Be a beginning.</span>
+                </h1>
+                <p>
+                  A more accessible everyday starts with what you notice. Turn a
+                  photo into a voice for change.
+                </p>
+                <button
+                  className="button-primary capture-cta"
+                  onClick={newReport}
+                >
+                  <Camera size={19} /> Make a report <ArrowUpRight size={19} />
+                </button>
+                <button
+                  className="location-pill"
+                  onClick={() => setAreaModal("profile")}
+                >
+                  <MapPin size={14} />
+                  {area?.label || "Find your neighborhood"}
+                  <ChevronRight size={14} />
+                </button>
               </div>
-              <button
-                className="location-pill"
-                onClick={() => setAreaModal("profile")}
-              >
-                <MapPin size={13} />
-                {area?.label || "Set your area"}
-                <ChevronRight size={12} />
-              </button>
-              <h1 ref={heading} tabIndex={-1}>
-                Small photo.
-                <br />
-                <span>Big possibility.</span>
-              </h1>
-              <p>
-                One photo. A short report.
-                <br className="mobile-break" /> A voice for better access.
-              </p>
-            </div>
-            <div className="home-capture">
-              <div className="camera-orbit" aria-hidden="true">
-                <span className="orbit-spark">✳</span>
-                <span className="orbit-note">
-                  <span>
-                    LET’S MAKE
-                    <br />
-                    ROOM FOR
-                    <br />
-                    <b>everyone.</b>
-                  </span>
-                  <ArrowRight size={19} />
-                </span>
-                <span className="orbit-ring one" />
-                <span className="orbit-ring two" />
-                <span className="camera-disc">
-                  <Camera size={43} strokeWidth={1.2} />
-                </span>
-                <span className="floating-tag photo-tag">
-                  <Check size={12} /> Notice something?
-                </span>
-                <span className="floating-tag location-tag">
-                  <MapPin size={12} /> Right here
-                </span>
-                <span className="floating-tag report-tag">
-                  <FileText size={12} /> Your voice counts
-                </span>
-              </div>
-              <button
-                className="button-primary capture-cta"
-                onClick={newReport}
-              >
-                <Camera size={19} /> Take a photo <ArrowRight size={18} />
-              </button>
-              <p className="fine-print">
-                Or choose a photo you’ve already taken.
-              </p>
+              <WelcomeGallery compact />
             </div>
             <div className="home-bottom">
               <div className="how-it-works">
-                <span className="micro-label">FROM PHOTO TO ACTION</span>
-                <div>
-                  <span>
-                    <i>1</i>Capture
-                  </span>
-                  <ChevronRight size={13} />
-                  <span>
-                    <i>2</i>Review
-                  </span>
-                  <ChevronRight size={13} />
-                  <span>
-                    <i>3</i>Share
-                  </span>
+                <span className="micro-label">
+                  SMALL STEPS. MORE POSSIBILITY.
+                </span>
+                <div className="how-steps">
+                  <div>
+                    <span className="how-icon">
+                      <Camera size={20} />
+                    </span>
+                    <b>Notice it.</b>
+                    <p>One photo of what’s in the way.</p>
+                  </div>
+                  <div>
+                    <span className="how-icon">
+                      <FileText size={20} />
+                    </span>
+                    <b>Put it into words.</b>
+                    <p>A short report, reviewed by you.</p>
+                  </div>
+                  <div>
+                    <span className="how-icon">
+                      <Send size={20} />
+                    </span>
+                    <b>Start a conversation.</b>
+                    <p>Share with your representative.</p>
+                  </div>
                 </div>
               </div>
-              <button
-                className="recent-link"
-                onClick={() => setView("reports")}
-              >
-                <span className="recent-icon">
-                  <FileText size={20} />
-                </span>
-                <span>
-                  <b>My reports</b>
-                  <small>
-                    {loading
-                      ? "Opening your reports…"
-                      : reports.length
-                        ? `${reports.length} saved on this device`
-                        : "Your saved reports will appear here"}
-                  </small>
-                </span>
-                <ArrowRight size={17} />
-              </button>
+              <div className="home-recent">
+                <div className="section-heading">
+                  <h2>Your little beginnings</h2>
+                  <button
+                    className="text-button"
+                    onClick={() => setView("reports")}
+                  >
+                    View all <ArrowRight size={14} />
+                  </button>
+                </div>
+                {reports.length ? (
+                  <button
+                    className="recent-link"
+                    onClick={() => openReport(reports[0])}
+                  >
+                    <img src={reports[0].image} alt="" />
+                    <span>
+                      <b>{reports[0].category}</b>
+                      <small>{reports[0].place}</small>
+                    </span>
+                    <ChevronRight size={18} />
+                  </button>
+                ) : (
+                  <button className="recent-link" onClick={newReport}>
+                    <span className="recent-icon">
+                      <FileText size={23} strokeWidth={1.4} />
+                    </span>
+                    <span>
+                      <b>Your first report starts here</b>
+                      <small>Notice something? Make it visible.</small>
+                    </span>
+                    <ArrowUpRight size={20} />
+                  </button>
+                )}
+              </div>
             </div>
           </section>
         )}
@@ -1658,7 +1306,7 @@ export default function App() {
             <div className="page-intro">
               <span className="eyebrow">SAVED ON THIS DEVICE</span>
               <h1 ref={heading} tabIndex={-1}>
-                Your reports.
+                Your observations.
               </h1>
               <p>One barrier per report. Ready when you need them.</p>
             </div>
@@ -1724,7 +1372,7 @@ export default function App() {
             <div className="page-intro">
               <span className="eyebrow">MAKE IT YOURS</span>
               <h1 ref={heading} tabIndex={-1}>
-                A few essentials.
+                Your corner.
               </h1>
               <p>Your details, your neighborhood, your voice.</p>
             </div>
@@ -1769,6 +1417,7 @@ export default function App() {
                   setContactDraft(profile);
                   setStep(0);
                   setView("onboard");
+                  setShowSplash(true);
                 }}
               >
                 <span className="settings-icon">
@@ -1776,7 +1425,7 @@ export default function App() {
                 </span>
                 <span>
                   <b>Take the tour again</b>
-                  <small>Five quick steps to make it yours</small>
+                  <small>A fresh start, whenever you need it</small>
                 </span>
                 <ChevronRight size={18} />
               </button>
