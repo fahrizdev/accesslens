@@ -1,6 +1,5 @@
 import { useEffect, useRef, type FormEvent, type ReactNode } from "react";
 import {
-  ArrowDown,
   ArrowLeft,
   ArrowRight,
   Check,
@@ -10,7 +9,8 @@ import {
 } from "lucide-react";
 import type { Area } from "./data";
 import type { SenderProfile } from "./profile";
-import { LensMark, WelcomeGallery } from "./Brand";
+import { LensMark } from "./Brand";
+import Welcome from "./Welcome";
 
 type Props = {
   step: number;
@@ -76,34 +76,7 @@ export default function Onboarding({
         </button>
       </header>
       {step === 0 ? (
-        <div className="welcome-layout">
-          <WelcomeGallery />
-          <div className="welcome-copy">
-            <div className="welcome-wordmark">
-              <LensMark />
-              accesslens
-            </div>
-            <h1 ref={heading} tabIndex={-1}>
-              A more open world
-              <br />
-              <span className="gradient-text">starts with you.</span>
-            </h1>
-            <p>
-              Notice a barrier. Give it a voice.
-              <br />A photo is all you need to start.
-            </p>
-            <button className="welcome-start" onClick={() => move(1)}>
-              <span className="gradient-circle">
-                <ArrowDown size={28} strokeWidth={1.7} />
-              </span>
-              <span>Let’s get started</span>
-            </button>
-            <div className="welcome-footnote">
-              <ShieldCheck size={13} /> Saved on your device. Shared only by
-              you.
-            </div>
-          </div>
-        </div>
+        <Welcome onContinue={() => move(1)} />
       ) : (
         <div className={`setup-panel direction-${direction}`} key={step}>
           <div className={`setup-art setup-art-${step}`} aria-hidden="true">
@@ -151,7 +124,7 @@ export default function Onboarding({
                   "",
                   "Let’s make it yours.",
                   "A way to reach you.",
-                  "Where’s your everyday?",
+                  "Your neighborhood.",
                   profile.name
                     ? `You’re all set, ${profile.name.split(/\s+/)[0]}.`
                     : "You’re all set.",
@@ -164,7 +137,7 @@ export default function Onboarding({
                   "",
                   "Every voice has a name. What’s yours?",
                   "Give your representative a way to reply.",
-                  "Find the representative for your neighborhood.",
+                  "Choose an area to find your representative.",
                   "One photo. A few details. A voice for better access.",
                 ][step]
               }
@@ -226,17 +199,24 @@ export default function Onboarding({
           )}
           {step === 3 && (
             <div className="setup-area">
-              {area && (
-                <button className="saved-area" onClick={() => move(4)}>
-                  <MapPin size={20} />
-                  <span>
-                    <small>KEEP YOUR SAVED AREA</small>
-                    <b>{area.label}</b>
-                  </span>
-                  <ArrowRight size={18} />
-                </button>
+              {area ? (
+                <>
+                  <button className="saved-area" onClick={() => move(4)}>
+                    <MapPin size={20} />
+                    <span>
+                      <small>USE YOUR SAVED AREA</small>
+                      <b>{area.label}</b>
+                    </span>
+                    <ArrowRight size={18} />
+                  </button>
+                  <details className="change-neighborhood">
+                    <summary>Choose another area</summary>
+                    {areaPicker}
+                  </details>
+                </>
+              ) : (
+                areaPicker
               )}
-              {areaPicker}
             </div>
           )}
           {step === 4 && (

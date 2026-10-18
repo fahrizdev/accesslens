@@ -9,7 +9,6 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowUpRight,
   Camera,
   Check,
   ChevronRight,
@@ -50,7 +49,8 @@ import {
   type SenderProfile,
 } from "./profile";
 
-import { LensMark, Splash, WelcomeGallery } from "./Brand";
+import { LensMark, Splash } from "./Brand";
+import HomeDashboard from "./Home";
 import Onboarding from "./Onboarding";
 
 type View =
@@ -170,7 +170,15 @@ function AreaPicker({
   const [result, setResult] = useState<Area | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [method, setMethod] = useState<"choice" | "address" | "town">("choice");
   const requestId = useRef(0);
+  function chooseMethod(next: "choice" | "address" | "town") {
+    requestId.current++;
+    setBusy(false);
+    setError("");
+    setResult(null);
+    setMethod(next);
+  }
   useEffect(
     () => () => {
       requestId.current++;
@@ -230,48 +238,136 @@ function AreaPicker({
   }
   function findAddress(event: FormEvent) {
     event.preventDefault();
+    if (!address.trim()) {
+      setError("Enter a public address, city, and state.");
+      return;
+    }
     const version = ++requestId.current;
     setError("");
     setResult(null);
     setBusy(true);
-    void lookup({ address }, version);
+    void lookup({ address: address.trim() }, version);
   }
   return (
-    <div className="area-picker">
-      <button className="button-primary full" onClick={gps} disabled={busy}>
-        <Crosshair size={17} />
-        {busy ? "Finding your area…" : "Use my location"}
-      </button>
-      <p className="permission-note">
-        <ShieldCheck size={12} /> A single location check. No background
-        tracking.
-      </p>
-      <div className="or-divider">
-        <span>or enter a public address</span>
-      </div>
-      <form onSubmit={findAddress}>
-        <label className="field-label">
-          Street address, city, and state
-          <input
-            autoComplete="off"
-            value={address}
-            onChange={(event) => setAddress(event.target.value)}
-            placeholder="A nearby library, school, or intersection"
-            required
-            maxLength={200}
-          />
-        </label>
-        <button className="button-secondary full" disabled={busy}>
-          Find my representative <ArrowRight size={16} />
-        </button>
-      </form>
+    <div className="area-picker area-picker-calm">
+      {!result && (
+        <>
+          {method === "choice" ? (
+            <div className="area-methods">
+              <button
+                className="area-method area-location"
+                onClick={gps}
+                disabled={busy}
+              >
+                <span className="area-method-icon">
+                  {busy ? (
+                    <span className="spinner" />
+                  ) : (
+                    <Crosshair size={22} strokeWidth={1.6} />
+                  )}
+                </span>
+                <span>
+                  <b>{busy ? "Finding your area…" : "Use my location"}</b>
+                  <small>A one-time check. No tracking.</small>
+                </span>
+                <ChevronRight size={17} />
+              </button>
+              <button
+                className="area-method"
+                onClick={() => chooseMethod("address")}
+              >
+                <span className="area-method-icon">
+                  <MapPin size={22} strokeWidth={1.6} />
+                </span>
+                <span>
+                  <b>Enter an address</b>
+                  <small>A nearby public place works, too.</small>
+                </span>
+                <ChevronRight size={17} />
+              </button>
+              <button
+                className="text-button area-town-link"
+                onClick={() => chooseMethod("town")}
+              >
+                Just save my town for now
+              </button>
+            </div>
+          ) : (
+            <div className="area-entry-panel" key={method}>
+              <button
+                className="text-button area-back"
+                onClick={() => chooseMethod("choice")}
+              >
+                <ArrowLeft size={15} /> Other options
+              </button>
+              {method === "address" ? (
+                <form onSubmit={findAddress}>
+                  <label className="field-label">
+                    Public address
+                    <input
+                      autoComplete="off"
+                      value={address}
+                      onChange={(event) => setAddress(event.target.value)}
+                      placeholder="Street address, city, and state"
+                      required
+                      maxLength={200}
+                    />
+                  </label>
+                  <p className="area-field-hint">
+                    Try a library, school, or another nearby public place.
+                  </p>
+                  <button className="button-primary full" disabled={busy}>
+                    {busy ? "Finding your area…" : "Find my representative"}
+                    <ArrowRight size={16} />
+                  </button>
+                </form>
+              ) : (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (town.trim()) onChoose({ label: town.trim() });
+                    else setError("Enter your town and state.");
+                  }}
+                >
+                  <label className="field-label">
+                    Town and state
+                    <input
+                      autoComplete="off"
+                      value={town}
+                      onChange={(event) => setTown(event.target.value)}
+                      required
+                      placeholder="Seattle, WA"
+                      maxLength={100}
+                    />
+                  </label>
+                  <p className="area-field-hint">
+                    You can find your representative later.
+                  </p>
+                  <button className="button-primary full">
+                    Save area <ArrowRight size={16} />
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+          {method !== "town" && (
+            <p className="area-disclosure">
+              <ShieldCheck size={14} />
+              <span>
+                Your chosen address or location goes to the U.S. Census to find
+                your district.
+              </span>
+            </p>
+          )}
+        </>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
       {result && (
-        <div className="area-result">
+        <div className="area-result" aria-live="polite">
           <div className="area-result-label">
             <MapPin size={15} />
             <b>{result.label}</b>
@@ -286,36 +382,14 @@ function AreaPicker({
           <small>
             Matched using U.S. Census boundaries and the House Clerk directory.
           </small>
+          <button
+            className="text-button"
+            onClick={() => chooseMethod("choice")}
+          >
+            Try another location
+          </button>
         </div>
       )}
-      <details className="manual-entry">
-        <summary>Enter my town without a lookup</summary>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (town.trim()) onChoose({ label: town.trim() });
-          }}
-        >
-          <label className="field-label">
-            Town and state
-            <input
-              value={town}
-              onChange={(event) => setTown(event.target.value)}
-              required
-              placeholder="Seattle, WA"
-              maxLength={100}
-            />
-          </label>
-          <button className="button-secondary full">
-            Save area <ArrowRight size={16} />
-          </button>
-          <p className="fine-print">You can choose a representative later.</p>
-        </form>
-      </details>
-      <p className="fine-print lookup-disclosure">
-        The address or coordinates you choose are sent to the U.S. Census
-        geocoder to find your district.
-      </p>
     </div>
   );
 }
@@ -768,107 +842,17 @@ export default function App() {
         )}
 
         {view === "home" && (
-          <section className="home-view">
-            <div className="home-hero">
-              <div className="home-intro">
-                <div className="greeting-pill">
-                  <span className="greeting-dot" />
-                  {profile.name
-                    ? `Good to see you, ${profile.name.split(/\s+/)[0]}.`
-                    : "A little attention goes a long way."}
-                </div>
-                <h1 ref={heading} tabIndex={-1}>
-                  See a barrier.
-                  <br />
-                  <span className="gradient-text">Be a beginning.</span>
-                </h1>
-                <p>
-                  A more accessible everyday starts with what you notice. Turn a
-                  photo into a voice for change.
-                </p>
-                <button
-                  className="button-primary capture-cta"
-                  onClick={newReport}
-                >
-                  <Camera size={19} /> Make a report <ArrowUpRight size={19} />
-                </button>
-                <button
-                  className="location-pill"
-                  onClick={() => setAreaModal("profile")}
-                >
-                  <MapPin size={14} />
-                  {area?.label || "Find your neighborhood"}
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-              <WelcomeGallery compact />
-            </div>
-            <div className="home-bottom">
-              <div className="how-it-works">
-                <span className="micro-label">
-                  SMALL STEPS. MORE POSSIBILITY.
-                </span>
-                <div className="how-steps">
-                  <div>
-                    <span className="how-icon">
-                      <Camera size={20} />
-                    </span>
-                    <b>Notice it.</b>
-                    <p>One photo of what’s in the way.</p>
-                  </div>
-                  <div>
-                    <span className="how-icon">
-                      <FileText size={20} />
-                    </span>
-                    <b>Put it into words.</b>
-                    <p>A short report, reviewed by you.</p>
-                  </div>
-                  <div>
-                    <span className="how-icon">
-                      <Send size={20} />
-                    </span>
-                    <b>Start a conversation.</b>
-                    <p>Share with your representative.</p>
-                  </div>
-                </div>
-              </div>
-              <div className="home-recent">
-                <div className="section-heading">
-                  <h2>Your little beginnings</h2>
-                  <button
-                    className="text-button"
-                    onClick={() => setView("reports")}
-                  >
-                    View all <ArrowRight size={14} />
-                  </button>
-                </div>
-                {reports.length ? (
-                  <button
-                    className="recent-link"
-                    onClick={() => openReport(reports[0])}
-                  >
-                    <img src={reports[0].image} alt="" />
-                    <span>
-                      <b>{reports[0].category}</b>
-                      <small>{reports[0].place}</small>
-                    </span>
-                    <ChevronRight size={18} />
-                  </button>
-                ) : (
-                  <button className="recent-link" onClick={newReport}>
-                    <span className="recent-icon">
-                      <FileText size={23} strokeWidth={1.4} />
-                    </span>
-                    <span>
-                      <b>Your first report starts here</b>
-                      <small>Notice something? Make it visible.</small>
-                    </span>
-                    <ArrowUpRight size={20} />
-                  </button>
-                )}
-              </div>
-            </div>
-          </section>
+          <HomeDashboard
+            name={profile.name}
+            area={area}
+            reports={reports}
+            loading={loading}
+            headingRef={heading}
+            onReport={newReport}
+            onArea={() => setAreaModal("profile")}
+            onReports={() => setView("reports")}
+            onOpenReport={openReport}
+          />
         )}
 
         {isFlow && (
@@ -1479,18 +1463,19 @@ export default function App() {
             <Home size={20} />
             <span>Home</span>
           </button>
-          <button className="nav-camera" onClick={newReport}>
-            <span>
-              <Camera size={21} />
-            </span>
-            <b>New report</b>
-          </button>
           <button
             aria-current={view === "reports" ? "page" : undefined}
             onClick={() => setView("reports")}
           >
             <FileText size={20} />
             <span>Reports</span>
+          </button>
+          <button
+            aria-current={view === "settings" ? "page" : undefined}
+            onClick={() => setView("settings")}
+          >
+            <Settings2 size={20} />
+            <span>Settings</span>
           </button>
         </nav>
       )}
