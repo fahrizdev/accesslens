@@ -6,12 +6,9 @@
     transition: none !important;
     scroll-behavior: auto !important;
   }
-  .intro-wordmark {
-    opacity: 1;
-  }
 }
 @media (forced-colors: active) {
-  .report-launch,
+  .capture-tile,
   .app-dock,
   .photo-stage,
   .category-options button,
@@ -23,14 +20,16 @@
   .app-dock [aria-current] {
     outline: 2px solid Highlight;
   }
-  .street-upper,
-  .street-ramp,
-  .street-lower,
-  .intro-edge {
-    background: CanvasText;
+  .shutter-disc {
+    background: ButtonText;
   }
 }
 @media print {
+  :root {
+    color-scheme: light;
+    background: white;
+    color: black;
+  }
   .topbar,
   .app-dock,
   .flow-top,
@@ -38,6 +37,12 @@
   .toast,
   .curb-intro {
     display: none !important;
+  }
+  .app-shell,
+  .main-content,
+  .report-paper {
+    background: white;
+    color: black;
   }
   .main-content {
     padding: 0;
@@ -47,11 +52,11 @@
   }
   .report-paper {
     border: 0;
-    box-shadow: none;
   }
   .summary-editor {
     border: 0;
     background: white;
+    color: black;
     min-height: 500px;
   }
   .review-photo {

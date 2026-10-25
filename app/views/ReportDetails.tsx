@@ -62,7 +62,7 @@ export default function ReportDetails({
     <section className="details-view">
       <div className="page-heading">
         <h1 ref={heading} tabIndex={-1}>
-          The details<span className="accent-dot">.</span>
+          Details
         </h1>
       </div>
       <form

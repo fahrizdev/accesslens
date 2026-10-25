@@ -21,7 +21,7 @@ export default function SettingsView({
     <section className="settings-view">
       <div className="page-heading">
         <h1 ref={heading} tabIndex={-1}>
-          Profile<span className="accent-dot">.</span>
+          Profile
         </h1>
       </div>
       <button className="profile-identity" onClick={onSignature}>
@@ -57,11 +57,7 @@ export default function SettingsView({
       >
         <h2 id="representative-heading">Your representative</h2>
         <div className="representative-profile-card">
-          <span className="district-emblem" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
+          <UserRound size={24} aria-hidden="true" />
           <div>
             <b>{area?.representative || "Who represents your area?"}</b>
             <p>{area?.district || "Find your U.S. House representative."}</p>

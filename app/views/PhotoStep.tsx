@@ -1,6 +1,5 @@
 import type { ChangeEvent, RefObject } from "react";
 import { ArrowRight, Camera, ImagePlus } from "lucide-react";
-
 type Props = {
   image: string;
   processing: boolean;
@@ -9,7 +8,6 @@ type Props = {
   preparePhoto: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
   onContinue: () => void;
 };
-
 export default function PhotoStep({
   image,
   processing,
@@ -22,19 +20,17 @@ export default function PhotoStep({
     <section className="photo-view">
       <div className="page-heading">
         <h1 ref={heading} tabIndex={-1}>
-          New report<span className="accent-dot">.</span>
+          New report
         </h1>
       </div>
       <div className={`photo-stage${image ? " has-photo" : ""}`}>
         {image ? (
           <img src={image} alt="Your selected barrier photo" />
         ) : (
-          <div className="capture-art" aria-hidden="true">
-            <span className="capture-frame">
-              <Camera size={50} strokeWidth={1.4} />
-            </span>
-            <span className="capture-sticker" />
-          </div>
+          <span className="capture-empty">
+            <Camera size={28} strokeWidth={1.3} />
+            <span>Add a photo</span>
+          </span>
         )}
         {processing && (
           <div className="processing-overlay" role="status">
@@ -42,9 +38,21 @@ export default function PhotoStep({
           </div>
         )}
       </div>
-      <div className="photo-buttons">
-        <label className="button-primary camera-input">
-          <Camera size={19} /> Take photo
+      <div className="camera-controls">
+        <label className="library-control camera-input">
+          <ImagePlus size={22} />
+          <span>Library</span>
+          <input
+            type="file"
+            accept="image/*"
+            aria-label="Choose a photo from your library"
+            onChange={(event) => void preparePhoto(event)}
+            disabled={processing}
+          />
+        </label>
+        <label className="shutter-control camera-input">
+          <span className="shutter-disc" />
+          <span className="sr-only">Take photo</span>
           <input
             type="file"
             accept="image/*"
@@ -54,20 +62,11 @@ export default function PhotoStep({
             disabled={processing}
           />
         </label>
-        <label className="button-secondary camera-input">
-          <ImagePlus size={19} /> Photo library
-          <input
-            type="file"
-            accept="image/*"
-            aria-label="Choose a photo from your library"
-            onChange={(event) => void preparePhoto(event)}
-            disabled={processing}
-          />
-        </label>
+        <span className="camera-control-spacer" aria-hidden="true" />
       </div>
       {image && (
         <button className="button-primary full use-photo" onClick={onContinue}>
-          Use this photo <ArrowRight size={17} />
+          Use photo <ArrowRight size={16} />
         </button>
       )}
       {error && (

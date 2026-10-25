@@ -7,12 +7,10 @@ import {
 } from "react";
 import {
   ArrowLeft,
-  ArrowRight,
   Camera,
   Check,
   FileText,
   Home,
-  MapPin,
   UserRound,
 } from "lucide-react";
 import {
@@ -35,7 +33,6 @@ import useReports from "./useReports";
 import { photoFile } from "./reportFiles";
 import {
   AREA_KEY,
-  ONBOARDING_KEY,
   readArea,
   readPreference,
   writePreference,
@@ -46,7 +43,6 @@ import AreaPicker from "./components/AreaPicker";
 import Modal from "./components/Modal";
 import { CurbMark, Splash } from "./Brand";
 import HomeDashboard from "./Home";
-import Onboarding from "./Onboarding";
 import PhotoStep from "./views/PhotoStep";
 import ReportDetails, {
   emptyReportForm,
@@ -56,14 +52,7 @@ import ReportReview from "./views/ReportReview";
 import ReportsView from "./views/ReportsView";
 import SettingsView from "./views/SettingsView";
 
-type View =
-  | "onboard"
-  | "home"
-  | "photo"
-  | "details"
-  | "review"
-  | "reports"
-  | "settings";
+type View = "home" | "photo" | "details" | "review" | "reports" | "settings";
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [profile, setProfile] = useState<SenderProfile>(() =>
@@ -75,11 +64,7 @@ export default function App() {
     null,
   );
   const [area, setArea] = useState<Area | null>(readArea);
-  const [view, setView] = useState<View>(() =>
-    readPreference(ONBOARDING_KEY) === true ? "home" : "onboard",
-  );
-  const [step, setStep] = useState(1);
-  const [direction, setDirection] = useState(1);
+  const [view, setView] = useState<View>("home");
   const { reports, loading, persist, remove, hasUnsaved, storageWarning } =
     useReports();
   const [draft, setDraft] = useState<ReportFormFields>(emptyReportForm);
@@ -106,6 +91,21 @@ export default function App() {
     (["photo", "details"].includes(view) && !!(image || note || place)) ||
     (view === "review" && summary !== current?.summary);
   useEffect(() => {
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === "Tab")
+        document.documentElement.classList.add("keyboard-navigation");
+    };
+    const pointer = () =>
+      document.documentElement.classList.remove("keyboard-navigation");
+    document.addEventListener("keydown", keyboard);
+    document.addEventListener("pointerdown", pointer);
+    return () => {
+      document.removeEventListener("keydown", keyboard);
+      document.removeEventListener("pointerdown", pointer);
+      document.documentElement.classList.remove("keyboard-navigation");
+    };
+  }, []);
+  useEffect(() => {
     if (!unsavedChanges) return;
     const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
       event.preventDefault();
@@ -127,7 +127,7 @@ export default function App() {
       imageVersion.current++;
       setProcessing(false);
     }
-  }, [view, step, showSplash]);
+  }, [view, showSplash]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(""), 4000);
@@ -141,11 +141,6 @@ export default function App() {
     }
     return saved;
   }
-  function finishOnboarding(openCamera = false) {
-    writePreference(ONBOARDING_KEY, true);
-    if (openCamera) newReport();
-    else setView("home");
-  }
   function rememberProfile(value: SenderProfile) {
     const next = normalizeProfile(value);
     setProfile(next);
@@ -155,15 +150,6 @@ export default function App() {
       setToast("Contact details saved for this visit only.");
     }
     return saved;
-  }
-  function nextContactStep(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    rememberProfile(contactDraft);
-    moveStep(step + 1);
-  }
-  function moveStep(next: number) {
-    setDirection(next > step ? 1 : -1);
-    setStep(next);
   }
   function updateDraft(patch: Partial<ReportFormFields>) {
     setDraft((previous) => ({ ...previous, ...patch }));
@@ -455,65 +441,30 @@ export default function App() {
           <button
             className="brand"
             aria-label="Curb home"
-            onClick={() =>
-              view === "onboard" ? moveStep(1) : navigate("home")
-            }
+            onClick={() => navigate("home")}
           >
             <CurbMark />
-            <span>
-              curb<span className="wordmark-dot">.</span>
-            </span>
+            <span>Curb</span>
           </button>
-          {view === "onboard" ? (
-            <button className="header-skip" onClick={() => finishOnboarding()}>
-              Set up later <ArrowRight size={14} />
-            </button>
-          ) : (
-            <button
-              className="header-area"
-              onClick={() => setAreaModal("profile")}
-            >
-              <MapPin size={15} />
-              <span>{area?.label || "Your area"}</span>
-            </button>
-          )}
+          <button
+            className="profile-button icon-button"
+            aria-label="Profile"
+            aria-current={view === "settings" ? "page" : undefined}
+            onClick={() => navigate("settings")}
+          >
+            <UserRound size={21} />
+          </button>
         </header>
         <main
           id="main"
           className={`main-content ${isFlow ? "flow-content" : ""}`}
         >
-          {view === "onboard" && (
-            <Onboarding
-              step={step}
-              direction={direction}
-              profile={profile}
-              draft={contactDraft}
-              area={area}
-              setDraft={setContactDraft}
-              move={moveStep}
-              finish={finishOnboarding}
-              submit={nextContactStep}
-              areaPicker={
-                <AreaPicker
-                  initial={area}
-                  onChoose={(next) => {
-                    rememberArea(next);
-                    moveStep(3);
-                  }}
-                />
-              }
-            />
-          )}
-
           {view === "home" && (
             <HomeDashboard
-              name={profile.name}
-              area={area}
               reports={reports}
               loading={loading}
               headingRef={heading}
               onReport={newReport}
-              onArea={() => setAreaModal("profile")}
               onReports={() => setView("reports")}
               onOpenReport={openReport}
             />
@@ -627,49 +578,38 @@ export default function App() {
             />
           )}
 
-          {storageWarning && view !== "onboard" && (
+          {storageWarning && (
             <p className="storage-warning" role="status">
               {storageWarning}
             </p>
           )}
         </main>
-        {view !== "onboard" && (
-          <nav className="app-dock" aria-label="App navigation">
-            <button
-              aria-current={view === "home" ? "page" : undefined}
-              onClick={() => navigate("home")}
-            >
-              <Home size={22} />
-              <span>Home</span>
-            </button>
-            <button
-              className="dock-create"
-              aria-current={isFlow ? "page" : undefined}
-              onClick={() => {
-                if (!isFlow) newReport();
-              }}
-            >
-              <span className="dock-camera">
-                <Camera size={23} />
-              </span>
-              <span>Report</span>
-            </button>
-            <button
-              aria-current={view === "reports" ? "page" : undefined}
-              onClick={() => navigate("reports")}
-            >
-              <FileText size={20} />
-              <span>Reports</span>
-            </button>
-            <button
-              aria-current={view === "settings" ? "page" : undefined}
-              onClick={() => navigate("settings")}
-            >
-              <UserRound size={22} />
-              <span>Profile</span>
-            </button>
-          </nav>
-        )}
+        <nav className="app-dock" aria-label="App navigation">
+          <button
+            aria-current={view === "home" ? "page" : undefined}
+            onClick={() => navigate("home")}
+          >
+            <Home size={22} />
+            <span>Home</span>
+          </button>
+          <button
+            className="dock-create"
+            aria-current={isFlow ? "page" : undefined}
+            onClick={() => {
+              if (!isFlow) newReport();
+            }}
+          >
+            <Camera size={21} />
+            <span>Report</span>
+          </button>
+          <button
+            aria-current={view === "reports" ? "page" : undefined}
+            onClick={() => navigate("reports")}
+          >
+            <FileText size={20} />
+            <span>Reports</span>
+          </button>
+        </nav>
         {toast && (
           <div className="toast" role="status">
             <Check size={16} />

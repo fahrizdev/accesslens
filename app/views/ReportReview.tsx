@@ -64,7 +64,7 @@ export default function ReportReview({
     <section className="review-view">
       <div className="page-heading">
         <h1 ref={heading} tabIndex={-1}>
-          Your report<span className="accent-dot">.</span>
+          Your report
         </h1>
       </div>
       <div className="review-layout">

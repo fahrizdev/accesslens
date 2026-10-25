@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { ChevronRight, FileText, Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import { displayDate, reportStatusLabel, type BarrierReport } from "../reports";
 type Props = {
   reports: BarrierReport[];
@@ -19,14 +19,10 @@ export default function ReportsView({
     <section className="reports-view">
       <div className="page-heading">
         <h1 ref={heading} tabIndex={-1}>
-          Reports<span className="accent-dot">.</span>
+          Reports
         </h1>
-        <button
-          className="icon-button new-report-button"
-          aria-label="New report"
-          onClick={newReport}
-        >
-          <Plus size={24} />
+        <button className="button-primary compact-button" onClick={newReport}>
+          <Plus size={15} /> New
         </button>
       </div>
       {loading ? (
@@ -34,40 +30,31 @@ export default function ReportsView({
           <span className="spinner" /> Loading reports…
         </div>
       ) : !reports.length ? (
-        <div className="empty-state reports-empty">
-          <span className="empty-stack" aria-hidden="true">
-            <FileText size={34} />
-          </span>
-          <h2>No reports yet.</h2>
-          <button className="button-primary" onClick={newReport}>
-            <Plus size={18} /> New report
-          </button>
-        </div>
+        <p className="quiet-empty">No reports yet</p>
       ) : (
-        <div className="report-list">
+        <div className="report-grid">
           {reports.map((report) => (
             <button
-              className="report-list-item"
+              className="saved-report-card"
               key={report.id}
               onClick={() => openReport(report)}
             >
-              {report.image ? (
-                <img src={report.image} alt="" />
-              ) : (
-                <span className="no-photo">
-                  <FileText size={26} />
-                </span>
-              )}
-              <span className="report-row-copy">
-                <span className="report-row-meta">
-                  {displayDate(report.created)}
-                  <i />
-                  {reportStatusLabel(report)}
-                </span>
-                <b>{report.category}</b>
-                <small>{report.place}</small>
+              <span className="saved-report-photo">
+                {report.image ? (
+                  <img src={report.image} alt="" />
+                ) : (
+                  <span className="no-photo">
+                    <FileText size={28} />
+                  </span>
+                )}
               </span>
-              <ChevronRight size={18} />
+              <span className="saved-report-heading">
+                <b>{report.category}</b>
+                <small>{displayDate(report.created)}</small>
+              </span>
+              <span className="saved-report-status">
+                {reportStatusLabel(report)}
+              </span>
             </button>
           ))}
         </div>

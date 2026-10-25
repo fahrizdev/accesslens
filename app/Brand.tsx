@@ -1,74 +1,45 @@
 import { useEffect, useRef, useState } from "react";
 
-// The two edges leave a ramp-shaped opening: the same geometry as the intro.
 export function CurbMark({ className = "" }: { className?: string }) {
   return (
     <svg
       className={`curb-mark ${className}`}
-      viewBox="0 0 64 64"
-      fill="none"
+      viewBox="0 0 80 80"
       aria-hidden="true"
     >
-      <path d="M8 12h19v14L13 40H8V12Z" fill="currentColor" />
-      <path d="M56 52H29V38l14-14h13v28Z" fill="currentColor" />
+      <path
+        d="M32.15 27.76Q32.06 27.88 31.77 25.49L30.28 13.39Q29.99 11 32.37 10.71L40.31 9.74Q42.7 9.44 42.99 11.83L44.48 23.93Q44.77 26.32 45.43 26.55L46.31 26.86Q46.97 27.09 48.96 25.75L57.42 20.05Q59.41 18.71 60.75 20.69L65.67 27.99Q67.02 29.98 65.03 31.32L56.57 37.03Q54.58 38.37 54.55 38.99L54.51 39.83Q54.48 40.45 56.6 41.58L68.26 47.78Q70.38 48.9 69.25 51.02L65.49 58.09Q64.37 60.2 62.25 59.08L50.59 52.88Q48.47 51.75 48.17 52.05L47.76 52.45Q47.45 52.75 47.53 55.15L47.92 66.34Q48.01 68.74 45.61 68.82L36.41 69.14Q34.02 69.23 33.93 66.83L33.54 55.63Q33.46 53.24 33.04 52.87L32.47 52.38Q32.05 52.01 29.99 53.25L20.39 59.01Q18.34 60.25 17.1 58.19L13.19 51.68Q11.95 49.62 14.01 48.39L23.61 42.62Q25.66 41.38 25.57 40.71L25.45 39.81Q25.35 39.13 23.3 37.9L15.41 33.16Q13.35 31.92 14.59 29.87L19.12 22.32Q20.36 20.27 22.42 21.5L30.3 26.24Q32.36 27.48 32.27 27.6L32.15 27.76Z"
+        fill="currentColor"
+      />
     </svg>
   );
 }
 
 export function Splash({ onContinue }: { onContinue: () => void }) {
   const [leaving, setLeaving] = useState(false);
-  const completed = useRef(false);
   const onContinueRef = useRef(onContinue);
   onContinueRef.current = onContinue;
   useEffect(() => {
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    const leave = window.setTimeout(
-      () => setLeaving(true),
-      reduced ? 80 : 1650,
-    );
+    const fade = window.setTimeout(() => setLeaving(true), reduced ? 0 : 700);
     const finish = window.setTimeout(
-      () => {
-        if (!completed.current) {
-          completed.current = true;
-          onContinueRef.current();
-        }
-      },
-      reduced ? 100 : 2100,
+      () => onContinueRef.current(),
+      reduced ? 60 : 950,
     );
     return () => {
-      window.clearTimeout(leave);
+      window.clearTimeout(fade);
       window.clearTimeout(finish);
     };
   }, []);
   return (
-    <div className={`curb-intro${leaving ? " intro-leaving" : ""}`}>
-      <div
-        className="intro-scene"
-        role="img"
-        aria-label="Curb. Making a way through."
-      >
-        <div className="intro-route" aria-hidden="true">
-          <span className="intro-edge intro-edge-left" />
-          <span className="intro-edge intro-edge-right" />
-          <span className="intro-route-line" />
-        </div>
-        <span className="intro-wordmark">
-          curb<span>.</span>
-        </span>
-      </div>
-      <button
-        className="intro-skip"
-        onClick={() => {
-          if (!completed.current) {
-            completed.current = true;
-            onContinueRef.current();
-          }
-        }}
-      >
-        Skip intro
-      </button>
+    <div
+      className={`curb-intro${leaving ? " intro-leaving" : ""}`}
+      role="img"
+      aria-label="Curb"
+    >
+      <CurbMark />
     </div>
   );
 }
