@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Crosshair,
   MapPin,
-  ShieldCheck,
 } from "lucide-react";
 import { lookupArea, type Area, type AreaQuery } from "../area";
 import Representative from "./Representative";
@@ -115,7 +114,6 @@ export default function AreaPicker({
                 </span>
                 <span>
                   <b>{busy ? "Finding your area…" : "Use my location"}</b>
-                  <small>Checks your location once.</small>
                 </span>
                 <ChevronRight size={17} />
               </button>
@@ -128,7 +126,7 @@ export default function AreaPicker({
                 </span>
                 <span>
                   <b>Enter an address</b>
-                  <small>A nearby library or school works too.</small>
+                  <small>Library, school, or public place</small>
                 </span>
                 <ChevronRight size={17} />
               </button>
@@ -196,15 +194,6 @@ export default function AreaPicker({
                 </form>
               )}
             </div>
-          )}
-          {method !== "town" && (
-            <p className="area-disclosure">
-              <ShieldCheck size={14} />
-              <span>
-                Your chosen address or location goes to the U.S. Census to find
-                your district.
-              </span>
-            </p>
           )}
         </>
       )}

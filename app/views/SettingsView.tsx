@@ -1,93 +1,92 @@
 import type { RefObject } from "react";
-import {
-  ChevronRight,
-  MapPin,
-  ShieldCheck,
-  Sparkles,
-  UserRound,
-} from "lucide-react";
-import type { Area } from "../area";
+import { ArrowUpRight, ChevronRight, MapPin, UserRound } from "lucide-react";
+import { officialContactUrl, type Area } from "../area";
 import type { SenderProfile } from "../profile";
-import Representative from "../components/Representative";
-
 type Props = {
   profile: SenderProfile;
   area: Area | null;
   heading: RefObject<HTMLHeadingElement | null>;
   onSignature: () => void;
   onArea: () => void;
-  onSetup: () => void;
-  onPrivacy: () => void;
 };
-
 export default function SettingsView({
   profile,
   area,
   heading,
   onSignature,
   onArea,
-  onSetup,
-  onPrivacy,
 }: Props) {
+  const initial = profile.name.trim().charAt(0).toUpperCase();
   return (
     <section className="settings-view">
-      <div className="page-intro">
-        <span className="eyebrow">YOUR DETAILS</span>
+      <div className="page-heading">
         <h1 ref={heading} tabIndex={-1}>
-          Settings.
+          Profile<span className="accent-dot">.</span>
         </h1>
-        <p>Change your contact info or saved area.</p>
       </div>
+      <button className="profile-identity" onClick={onSignature}>
+        <span className="profile-monogram">
+          {initial || <UserRound size={30} strokeWidth={1.7} />}
+        </span>
+        <span>
+          <b>{profile.name || "Your profile"}</b>
+          <small>{profile.email || "Add your name & email"}</small>
+        </span>
+        <ChevronRight size={21} />
+      </button>
       <div className="settings-group">
         <button onClick={onSignature}>
-          <span className="settings-icon">
-            <UserRound size={21} />
-          </span>
+          <UserRound size={22} />
           <span>
-            <b>{profile.name || "Your name & email"}</b>
-            <small>{profile.email || "Set up your report signature"}</small>
+            <b>Personal details</b>
           </span>
           <ChevronRight size={18} />
         </button>
-      </div>
-      <div className="settings-group">
         <button onClick={onArea}>
-          <span className="settings-icon">
-            <MapPin size={21} />
-          </span>
+          <MapPin size={22} />
           <span>
             <b>Your area</b>
-            <small>{area?.label || "Choose your area"}</small>
+            <small>{area?.label || "Choose an area"}</small>
           </span>
           <ChevronRight size={18} />
         </button>
-        <div className="settings-representative">
-          <Representative area={area} compact />
+      </div>
+      <section
+        className="profile-representative"
+        aria-labelledby="representative-heading"
+      >
+        <h2 id="representative-heading">Your representative</h2>
+        <div className="representative-profile-card">
+          <span className="district-emblem" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <div>
+            <b>{area?.representative || "Who represents your area?"}</b>
+            <p>{area?.district || "Find your U.S. House representative."}</p>
+          </div>
         </div>
-      </div>
-      <div className="settings-group">
-        <button onClick={onSetup}>
-          <span className="settings-icon">
-            <Sparkles size={21} />
-          </span>
-          <span>
-            <b>Go through setup again</b>
-            <small>Review your name, email, and area</small>
-          </span>
-          <ChevronRight size={18} />
-        </button>
-        <button onClick={onPrivacy}>
-          <span className="settings-icon">
-            <ShieldCheck size={21} />
-          </span>
-          <span>
-            <b>Privacy & how it works</b>
-            <small>Where your photos and reports are saved</small>
-          </span>
-          <ChevronRight size={18} />
-        </button>
-      </div>
-      <p className="version-note">Via</p>
+        {area?.representative ? (
+          <div className="representative-actions">
+            <a
+              className="text-button"
+              href={officialContactUrl(area.contactUrl)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Official page <ArrowUpRight size={15} />
+            </a>
+            <button className="text-button" onClick={onArea}>
+              Change area
+            </button>
+          </div>
+        ) : (
+          <button className="text-button" onClick={onArea}>
+            Find representative <ArrowUpRight size={16} />
+          </button>
+        )}
+      </section>
     </section>
   );
 }

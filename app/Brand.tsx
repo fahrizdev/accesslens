@@ -1,65 +1,74 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown } from "lucide-react";
 
-export function LensMark({ className = "" }: { className?: string }) {
+// The two edges leave a ramp-shaped opening: the same geometry as the intro.
+export function CurbMark({ className = "" }: { className?: string }) {
   return (
-    <span className={`lens-mark ${className}`} aria-hidden="true">
-      <span className="lens-aura" />
-      <svg viewBox="0 0 100 100" fill="none">
-        <path
-          d="M50 9C47 30 38 39 17 42C34 44 43 39 50 27C57 39 66 44 83 42C62 39 53 30 50 9Z"
-          fill="currentColor"
-        />
-        <path
-          d="M50 91C47 70 38 61 17 58C34 56 43 61 50 73C57 61 66 56 83 58C62 61 53 70 50 91Z"
-          fill="currentColor"
-        />
-        <circle cx="50" cy="50" r="9" fill="currentColor" />
-      </svg>
-    </span>
+    <svg
+      className={`curb-mark ${className}`}
+      viewBox="0 0 64 64"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path d="M8 12h19v14L13 40H8V12Z" fill="currentColor" />
+      <path d="M56 52H29V38l14-14h13v28Z" fill="currentColor" />
+    </svg>
   );
 }
 
 export function Splash({ onContinue }: { onContinue: () => void }) {
   const [leaving, setLeaving] = useState(false);
-  const [buttonReady, setButtonReady] = useState(
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
-  const exitTimer = useRef<number | undefined>(undefined);
+  const completed = useRef(false);
+  const onContinueRef = useRef(onContinue);
+  onContinueRef.current = onContinue;
   useEffect(() => {
-    const reveal = window.setTimeout(() => setButtonReady(true), 1100);
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const leave = window.setTimeout(
+      () => setLeaving(true),
+      reduced ? 80 : 1650,
+    );
+    const finish = window.setTimeout(
+      () => {
+        if (!completed.current) {
+          completed.current = true;
+          onContinueRef.current();
+        }
+      },
+      reduced ? 100 : 2100,
+    );
     return () => {
-      window.clearTimeout(reveal);
-      window.clearTimeout(exitTimer.current);
+      window.clearTimeout(leave);
+      window.clearTimeout(finish);
     };
   }, []);
-
-  function enterApp() {
-    if (leaving) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      onContinue();
-      return;
-    }
-    setLeaving(true);
-    exitTimer.current = window.setTimeout(onContinue, 300);
-  }
-
   return (
-    <div className={`launch-screen${leaving ? " launch-leaving" : ""}`}>
-      <div className="launch-center" role="img" aria-label="Via">
-        <LensMark className="launch-mark" />
-        <span className="launch-wordmark">Via</span>
+    <div className={`curb-intro${leaving ? " intro-leaving" : ""}`}>
+      <div
+        className="intro-scene"
+        role="img"
+        aria-label="Curb. Making a way through."
+      >
+        <div className="intro-route" aria-hidden="true">
+          <span className="intro-edge intro-edge-left" />
+          <span className="intro-edge intro-edge-right" />
+          <span className="intro-route-line" />
+        </div>
+        <span className="intro-wordmark">
+          curb<span>.</span>
+        </span>
       </div>
-      {buttonReady && (
-        <button
-          className="launch-enter gradient-circle"
-          aria-label="Open Via"
-          onClick={enterApp}
-          disabled={leaving}
-        >
-          <ArrowDown size={28} strokeWidth={1.7} />
-        </button>
-      )}
+      <button
+        className="intro-skip"
+        onClick={() => {
+          if (!completed.current) {
+            completed.current = true;
+            onContinueRef.current();
+          }
+        }}
+      >
+        Skip intro
+      </button>
     </div>
   );
 }

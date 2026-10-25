@@ -8,12 +8,12 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
+  Camera,
   Check,
   FileText,
   Home,
-  Send,
-  Settings2,
-  ShieldCheck,
+  MapPin,
+  UserRound,
 } from "lucide-react";
 import {
   createDraft,
@@ -44,8 +44,7 @@ import { lookupArea } from "./area";
 import { preparePhoto as resizePhoto } from "./photos";
 import AreaPicker from "./components/AreaPicker";
 import Modal from "./components/Modal";
-import PrivacyDialog from "./components/PrivacyDialog";
-import { LensMark, Splash } from "./Brand";
+import { CurbMark, Splash } from "./Brand";
 import HomeDashboard from "./Home";
 import Onboarding from "./Onboarding";
 import PhotoStep from "./views/PhotoStep";
@@ -96,7 +95,6 @@ export default function App() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [areaModal, setAreaModal] = useState<"profile" | "report" | null>(null);
-  const [privacyModal, setPrivacyModal] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const sendPanel = useRef<HTMLDivElement>(null);
   const imageVersion = useRef(0);
@@ -403,7 +401,7 @@ export default function App() {
     try {
       await navigator.share({
         files: [file],
-        title: `Via: ${report.category}`,
+        title: `Curb: ${report.category}`,
         text: summary,
       });
       if (version === reportVersion.current)
@@ -441,442 +439,415 @@ export default function App() {
       if (version !== reportVersion.current) return;
       setCurrent(null);
       setView("reports");
-      setToast("Report deleted from this device.");
+      setToast("Report deleted.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not delete report.");
     }
   }
   const isFlow = ["photo", "details", "review"].includes(view);
-  const recipient = reportArea?.representative;
-  if (showSplash) return <Splash onContinue={() => setShowSplash(false)} />;
   return (
-    <div className={`app-shell view-${view}`}>
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
-      <header className="topbar">
-        <button
-          className="brand"
-          aria-label="Via home"
-          onClick={() => (view === "onboard" ? moveStep(1) : navigate("home"))}
-        >
-          <LensMark />
-          <span>Via</span>
-        </button>
-        {view === "onboard" ? (
-          <button className="header-skip" onClick={() => finishOnboarding()}>
-            Set up later <ArrowRight size={14} />
+    <>
+      <div className={`app-shell view-${view}`} inert={showSplash}>
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
+        <header className="topbar">
+          <button
+            className="brand"
+            aria-label="Curb home"
+            onClick={() =>
+              view === "onboard" ? moveStep(1) : navigate("home")
+            }
+          >
+            <CurbMark />
+            <span>
+              curb<span className="wordmark-dot">.</span>
+            </span>
           </button>
-        ) : (
-          <nav className="header-nav" aria-label="Main navigation">
+          {view === "onboard" ? (
+            <button className="header-skip" onClick={() => finishOnboarding()}>
+              Set up later <ArrowRight size={14} />
+            </button>
+          ) : (
             <button
-              className={view === "reports" ? "selected" : ""}
-              onClick={() => navigate("reports")}
+              className="header-area"
+              onClick={() => setAreaModal("profile")}
             >
-              <FileText size={17} />
-              <span>My reports</span>
+              <MapPin size={15} />
+              <span>{area?.label || "Your area"}</span>
+            </button>
+          )}
+        </header>
+        <main
+          id="main"
+          className={`main-content ${isFlow ? "flow-content" : ""}`}
+        >
+          {view === "onboard" && (
+            <Onboarding
+              step={step}
+              direction={direction}
+              profile={profile}
+              draft={contactDraft}
+              area={area}
+              setDraft={setContactDraft}
+              move={moveStep}
+              finish={finishOnboarding}
+              submit={nextContactStep}
+              areaPicker={
+                <AreaPicker
+                  initial={area}
+                  onChoose={(next) => {
+                    rememberArea(next);
+                    moveStep(3);
+                  }}
+                />
+              }
+            />
+          )}
+
+          {view === "home" && (
+            <HomeDashboard
+              name={profile.name}
+              area={area}
+              reports={reports}
+              loading={loading}
+              headingRef={heading}
+              onReport={newReport}
+              onArea={() => setAreaModal("profile")}
+              onReports={() => setView("reports")}
+              onOpenReport={openReport}
+            />
+          )}
+
+          {isFlow && (
+            <div className="flow-top">
+              <button
+                className="back-button"
+                onClick={() =>
+                  view === "photo"
+                    ? navigate("home")
+                    : setView(view === "details" ? "photo" : "details")
+                }
+              >
+                <ArrowLeft size={16} />
+                {view === "photo" ? "Home" : "Back"}
+              </button>
+              <ol className="flow-steps" aria-label="Report progress">
+                {["Photo", "Details", "Review"].map((label, index) => (
+                  <li
+                    key={label}
+                    className={
+                      index <=
+                      (view === "photo" ? 0 : view === "details" ? 1 : 2)
+                        ? "active"
+                        : ""
+                    }
+                    aria-current={
+                      index ===
+                      (view === "photo" ? 0 : view === "details" ? 1 : 2)
+                        ? "step"
+                        : undefined
+                    }
+                  >
+                    {label}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+          {view === "photo" && (
+            <PhotoStep
+              image={image}
+              processing={processing}
+              error={error}
+              heading={heading}
+              preparePhoto={preparePhoto}
+              onContinue={() => setView("details")}
+            />
+          )}
+
+          {view === "details" && (
+            <ReportDetails
+              draft={draft}
+              reportArea={reportArea}
+              locating={locating}
+              saving={saving}
+              error={error}
+              heading={heading}
+              onChange={updateDraft}
+              onPhoto={() => setView("photo")}
+              onArea={() => setAreaModal("report")}
+              onRemovePin={removePin}
+              addLocation={addLocation}
+              generate={generate}
+            />
+          )}
+
+          {view === "review" && current && (
+            <ReportReview
+              current={current}
+              summary={summary}
+              reportArea={reportArea}
+              sharing={sharing}
+              error={error}
+              heading={heading}
+              sendPanel={sendPanel}
+              setSummary={setSummary}
+              saveReview={saveReview}
+              chooseArea={() => setAreaModal("report")}
+              share={share}
+              copy={copy}
+              updateFollowUp={updateFollowUp}
+              newReport={newReport}
+              deleteCurrent={() => setConfirmation("report")}
+            />
+          )}
+
+          {view === "reports" && (
+            <ReportsView
+              reports={reports}
+              loading={loading}
+              heading={heading}
+              newReport={newReport}
+              openReport={openReport}
+            />
+          )}
+
+          {view === "settings" && (
+            <SettingsView
+              profile={profile}
+              area={area}
+              heading={heading}
+              onSignature={() => {
+                setError("");
+                setContactDraft(profile);
+                setProfileModal(true);
+              }}
+              onArea={() => setAreaModal("profile")}
+            />
+          )}
+
+          {storageWarning && view !== "onboard" && (
+            <p className="storage-warning" role="status">
+              {storageWarning}
+            </p>
+          )}
+        </main>
+        {view !== "onboard" && (
+          <nav className="app-dock" aria-label="App navigation">
+            <button
+              aria-current={view === "home" ? "page" : undefined}
+              onClick={() => navigate("home")}
+            >
+              <Home size={22} />
+              <span>Home</span>
             </button>
             <button
-              className="settings-button"
-              aria-label="Settings"
+              className="dock-create"
+              aria-current={isFlow ? "page" : undefined}
+              onClick={() => {
+                if (!isFlow) newReport();
+              }}
+            >
+              <span className="dock-camera">
+                <Camera size={23} />
+              </span>
+              <span>Report</span>
+            </button>
+            <button
+              aria-current={view === "reports" ? "page" : undefined}
+              onClick={() => navigate("reports")}
+            >
+              <FileText size={20} />
+              <span>Reports</span>
+            </button>
+            <button
+              aria-current={view === "settings" ? "page" : undefined}
               onClick={() => navigate("settings")}
             >
-              <Settings2 size={19} />
+              <UserRound size={22} />
+              <span>Profile</span>
             </button>
           </nav>
         )}
-      </header>
-      <main
-        id="main"
-        className={`main-content ${isFlow ? "flow-content" : ""}`}
-      >
-        {view === "onboard" && (
-          <Onboarding
-            step={step}
-            direction={direction}
-            profile={profile}
-            draft={contactDraft}
-            area={area}
-            setDraft={setContactDraft}
-            move={moveStep}
-            finish={finishOnboarding}
-            submit={nextContactStep}
-            areaPicker={
-              <AreaPicker
-                initial={area}
-                onChoose={(next) => {
-                  rememberArea(next);
-                  moveStep(3);
-                }}
-              />
-            }
-          />
-        )}
-
-        {view === "home" && (
-          <HomeDashboard
-            name={profile.name}
-            area={area}
-            reports={reports}
-            loading={loading}
-            headingRef={heading}
-            onReport={newReport}
-            onArea={() => setAreaModal("profile")}
-            onReports={() => setView("reports")}
-            onOpenReport={openReport}
-          />
-        )}
-
-        {isFlow && (
-          <div className="flow-top">
-            <button
-              className="back-button"
-              onClick={() =>
-                view === "photo"
-                  ? navigate("home")
-                  : setView(view === "details" ? "photo" : "details")
-              }
-            >
-              <ArrowLeft size={16} />
-              {view === "photo" ? "Home" : "Back"}
-            </button>
-            <ol className="flow-steps" aria-label="Report progress">
-              {["Photo", "Details", "Share"].map((label, index) => (
-                <li
-                  key={label}
-                  className={
-                    index <= (view === "photo" ? 0 : view === "details" ? 1 : 2)
-                      ? "active"
-                      : ""
-                  }
-                  aria-current={
-                    index ===
-                    (view === "photo" ? 0 : view === "details" ? 1 : 2)
-                      ? "step"
-                      : undefined
-                  }
-                >
-                  <span>{index + 1}</span>
-                  {label}
-                </li>
-              ))}
-            </ol>
+        {toast && (
+          <div className="toast" role="status">
+            <Check size={16} />
+            {toast}
           </div>
         )}
-        {view === "photo" && (
-          <PhotoStep
-            image={image}
-            processing={processing}
-            error={error}
-            heading={heading}
-            preparePhoto={preparePhoto}
-            onContinue={() => setView("details")}
-          />
-        )}
-
-        {view === "details" && (
-          <ReportDetails
-            draft={draft}
-            reportArea={reportArea}
-            locating={locating}
-            saving={saving}
-            error={error}
-            heading={heading}
-            onChange={updateDraft}
-            onPhoto={() => setView("photo")}
-            onArea={() => setAreaModal("report")}
-            onRemovePin={removePin}
-            addLocation={addLocation}
-            generate={generate}
-          />
-        )}
-
-        {view === "review" && current && (
-          <ReportReview
-            current={current}
-            summary={summary}
-            reportArea={reportArea}
-            sharing={sharing}
-            error={error}
-            heading={heading}
-            sendPanel={sendPanel}
-            setSummary={setSummary}
-            saveReview={saveReview}
-            chooseArea={() => setAreaModal("report")}
-            share={share}
-            copy={copy}
-            updateFollowUp={updateFollowUp}
-            newReport={newReport}
-            deleteCurrent={() => setConfirmation("report")}
-          />
-        )}
-
-        {view === "reports" && (
-          <ReportsView
-            reports={reports}
-            loading={loading}
-            heading={heading}
-            newReport={newReport}
-            openReport={openReport}
-          />
-        )}
-
-        {view === "settings" && (
-          <SettingsView
-            profile={profile}
-            area={area}
-            heading={heading}
-            onSignature={() => {
-              setError("");
-              setContactDraft(profile);
-              setProfileModal(true);
-            }}
-            onArea={() => setAreaModal("profile")}
-            onSetup={() => {
-              setContactDraft(profile);
-              setStep(1);
-              setView("onboard");
-              setShowSplash(true);
-            }}
-            onPrivacy={() => setPrivacyModal(true)}
-          />
-        )}
-
-        {storageWarning && view !== "onboard" && (
-          <p className="storage-warning" role="status">
-            {storageWarning}
-          </p>
-        )}
-      </main>
-      {view === "review" && current && (
-        <div className="mobile-share-dock">
-          <button
-            className="dock-recipient"
-            onClick={() => setAreaModal("report")}
-          >
-            <span>SHARE WITH</span>
-            <b>{recipient || "Choose representative"}</b>
-          </button>
-          <button
-            className="button-primary"
-            onClick={() => void share()}
-            disabled={sharing || !summary.trim()}
-          >
-            <Send size={17} />
-            {sharing ? "Opening…" : "Share report"}
-          </button>
-        </div>
-      )}
-      {view !== "onboard" && !isFlow && (
-        <nav className="mobile-nav" aria-label="App navigation">
-          <button
-            aria-current={view === "home" ? "page" : undefined}
-            onClick={() => setView("home")}
-          >
-            <Home size={20} />
-            <span>Home</span>
-          </button>
-          <button
-            aria-current={view === "reports" ? "page" : undefined}
-            onClick={() => setView("reports")}
-          >
-            <FileText size={20} />
-            <span>Reports</span>
-          </button>
-          <button
-            aria-current={view === "settings" ? "page" : undefined}
-            onClick={() => setView("settings")}
-          >
-            <Settings2 size={20} />
-            <span>Settings</span>
-          </button>
-        </nav>
-      )}
-      <footer className="app-footer">
-        <span>Via</span>
-        <button onClick={() => setPrivacyModal(true)}>
-          <ShieldCheck size={12} /> Privacy
-        </button>
-      </footer>
-      {toast && (
-        <div className="toast" role="status">
-          <Check size={16} />
-          {toast}
-        </div>
-      )}
-      {areaModal && (
-        <Modal
-          title={
-            areaModal === "report" ? "Choose this report’s area" : "Your area"
-          }
-          onClose={() => setAreaModal(null)}
-        >
-          <p className="modal-description">
-            Find the representative for the area you choose.
-          </p>
-          <AreaPicker
-            initial={areaModal === "report" ? reportArea : area}
-            onChoose={(next) => {
-              let saved = true;
-              if (areaModal === "report") {
-                gpsVersion.current++;
-                gpsController.current?.abort();
-                setLocating(false);
-                setReportArea(next);
-                if (current && view === "review") {
-                  const updated = { ...current, summary, recipient: next };
-                  const text = retargetSummary(
-                    summary,
-                    current.recipient?.representative,
-                    next.representative,
-                  );
-                  setSummary(text);
-                  updated.summary = text;
-                  setCurrent(updated);
-                  void persist(updated);
-                }
-              } else saved = rememberArea(next);
-              setAreaModal(null);
-              setToast(
-                saved ? "Area updated." : "Area saved for this visit only.",
-              );
-            }}
-          />
-        </Modal>
-      )}
-      {profileModal && (
-        <Modal
-          title="Your report signature"
-          onClose={() => {
-            setContactDraft(profile);
-            setProfileModal(false);
-            setError("");
-          }}
-        >
-          <form
-            className="profile-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (
-                contactDraft.email.trim() &&
-                !validEmail(contactDraft.email.trim())
-              ) {
-                setError(
-                  "Use an email address like you@example.com, or leave it blank.",
-                );
-                return;
-              }
-              const saved = rememberProfile(contactDraft);
-              setProfileModal(false);
-              setError("");
-              setToast(
-                saved
-                  ? "Signature saved for new reports."
-                  : "Signature saved for this visit only.",
-              );
-            }}
+        {areaModal && (
+          <Modal
+            title={
+              areaModal === "report" ? "Choose this report’s area" : "Your area"
+            }
+            onClose={() => setAreaModal(null)}
           >
             <p className="modal-description">
-              New reports use these details. To change the signature on an older
-              report, edit its text.
+              Find the representative for the area you choose.
             </p>
-            <label htmlFor="profile-name">Your name</label>
-            <input
-              id="profile-name"
-              name="name"
-              autoComplete="name"
-              maxLength={80}
-              value={contactDraft.name}
-              onChange={(event) =>
-                setContactDraft({ ...contactDraft, name: event.target.value })
-              }
+            <AreaPicker
+              initial={areaModal === "report" ? reportArea : area}
+              onChoose={(next) => {
+                let saved = true;
+                if (areaModal === "report") {
+                  gpsVersion.current++;
+                  gpsController.current?.abort();
+                  setLocating(false);
+                  setReportArea(next);
+                  if (current && view === "review") {
+                    const updated = { ...current, summary, recipient: next };
+                    const text = retargetSummary(
+                      summary,
+                      current.recipient?.representative,
+                      next.representative,
+                    );
+                    setSummary(text);
+                    updated.summary = text;
+                    setCurrent(updated);
+                    void persist(updated);
+                  }
+                } else saved = rememberArea(next);
+                setAreaModal(null);
+                setToast(
+                  saved ? "Area updated." : "Area saved for this visit only.",
+                );
+              }}
             />
-            <label htmlFor="profile-email">Your email (optional)</label>
-            <input
-              id="profile-email"
-              name="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={254}
-              value={contactDraft.email}
-              onChange={(event) =>
-                setContactDraft({ ...contactDraft, email: event.target.value })
-              }
-            />
-            <p className="contact-hint">
-              This is your reply email. You’ll send reports from the account in
-              your mail app.
-            </p>
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
-            )}
-            <button className="button-primary full" type="submit">
-              Save details <Check size={17} />
-            </button>
-            {(profile.name || profile.email) && (
-              <button
-                className="text-button remove-contact"
-                type="button"
-                onClick={() => {
-                  setProfileModal(false);
-                  setConfirmation("contact");
-                }}
-              >
-                Remove saved contact details
-              </button>
-            )}
-          </form>
-        </Modal>
-      )}
-      {confirmation && (
-        <Modal
-          title={
-            confirmation === "report"
-              ? "Delete this report?"
-              : "Remove saved contact details?"
-          }
-          onClose={() => setConfirmation(null)}
-        >
-          <p className="modal-description">
-            {confirmation === "report"
-              ? "This removes this report and its photo from this device. Download a copy first if you want to keep it. This can’t be undone."
-              : "This removes your saved name and email. Older reports keep their signatures. You can edit or delete those separately."}
-          </p>
-          <div className="confirmation-actions">
-            <button
-              className="button-secondary"
-              onClick={() => setConfirmation(null)}
-            >
-              Keep it
-            </button>
-            <button
-              className="button-primary danger-button"
-              onClick={() => {
-                if (confirmation === "report") void removeCurrent();
-                else {
-                  const saved = rememberProfile({ name: "", email: "" });
-                  setConfirmation(null);
-                  setToast(
-                    saved
-                      ? "Saved contact details removed. Existing reports unchanged."
-                      : "Details removed for this visit only. Browser storage could not be updated.",
+          </Modal>
+        )}
+        {profileModal && (
+          <Modal
+            title="Personal details"
+            onClose={() => {
+              setContactDraft(profile);
+              setProfileModal(false);
+              setError("");
+            }}
+          >
+            <form
+              className="profile-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (
+                  contactDraft.email.trim() &&
+                  !validEmail(contactDraft.email.trim())
+                ) {
+                  setError(
+                    "Use an email address like you@example.com, or leave it blank.",
                   );
+                  return;
                 }
+                const saved = rememberProfile(contactDraft);
+                setProfileModal(false);
+                setError("");
+                setToast(
+                  saved
+                    ? "Signature saved for new reports."
+                    : "Signature saved for this visit only.",
+                );
               }}
             >
+              <p className="modal-description">
+                Your signature for new reports.
+              </p>
+              <label htmlFor="profile-name">Your name</label>
+              <input
+                id="profile-name"
+                name="name"
+                autoComplete="name"
+                maxLength={80}
+                value={contactDraft.name}
+                onChange={(event) =>
+                  setContactDraft({ ...contactDraft, name: event.target.value })
+                }
+              />
+              <label htmlFor="profile-email">Your email (optional)</label>
+              <input
+                id="profile-email"
+                name="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                maxLength={254}
+                value={contactDraft.email}
+                onChange={(event) =>
+                  setContactDraft({
+                    ...contactDraft,
+                    email: event.target.value,
+                  })
+                }
+              />
+              {error && (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              )}
+              <button className="button-primary full" type="submit">
+                Save details <Check size={17} />
+              </button>
+              {(profile.name || profile.email) && (
+                <button
+                  className="text-button remove-contact"
+                  type="button"
+                  onClick={() => {
+                    setProfileModal(false);
+                    setConfirmation("contact");
+                  }}
+                >
+                  Remove saved contact details
+                </button>
+              )}
+            </form>
+          </Modal>
+        )}
+        {confirmation && (
+          <Modal
+            title={
+              confirmation === "report"
+                ? "Delete this report?"
+                : "Remove saved contact details?"
+            }
+            onClose={() => setConfirmation(null)}
+          >
+            <p className="modal-description">
               {confirmation === "report"
-                ? "Delete report & photo"
-                : "Remove details"}
-            </button>
-          </div>
-        </Modal>
-      )}
-      {privacyModal && <PrivacyDialog onClose={() => setPrivacyModal(false)} />}
-    </div>
+                ? "This removes this report and its photo from this device. Download a copy first if you want to keep it. This can’t be undone."
+                : "This removes your saved name and email. Older reports keep their signatures. You can edit or delete those separately."}
+            </p>
+            <div className="confirmation-actions">
+              <button
+                className="button-secondary"
+                onClick={() => setConfirmation(null)}
+              >
+                Keep it
+              </button>
+              <button
+                className="button-primary danger-button"
+                onClick={() => {
+                  if (confirmation === "report") void removeCurrent();
+                  else {
+                    const saved = rememberProfile({ name: "", email: "" });
+                    setConfirmation(null);
+                    setToast(
+                      saved
+                        ? "Saved contact details removed. Existing reports unchanged."
+                        : "Details removed for this visit only. Browser storage could not be updated.",
+                    );
+                  }
+                }}
+              >
+                {confirmation === "report"
+                  ? "Delete report & photo"
+                  : "Remove details"}
+              </button>
+            </div>
+          </Modal>
+        )}
+      </div>
+      {showSplash && <Splash onContinue={() => setShowSplash(false)} />}
+    </>
   );
 }

@@ -5,7 +5,6 @@ import {
   Check,
   ChevronRight,
   Crosshair,
-  FileText,
   MapPin,
 } from "lucide-react";
 import { categories } from "../reports";
@@ -61,12 +60,10 @@ export default function ReportDetails({
 }: Props) {
   return (
     <section className="details-view">
-      <div className="page-intro">
-        <span className="eyebrow">02 / DETAILS</span>
+      <div className="page-heading">
         <h1 ref={heading} tabIndex={-1}>
-          What did you notice?
+          The details<span className="accent-dot">.</span>
         </h1>
-        <p>Pick a barrier type and add where it is.</p>
       </div>
       <form
         onSubmit={(event) => void generate(event)}
@@ -80,7 +77,7 @@ export default function ReportDetails({
         </div>
         <div className="details-fields">
           <fieldset className="category-field">
-            <legend>What’s the barrier?</legend>
+            <legend>Barrier type</legend>
             <div className="category-options">
               {categories.map((item) => (
                 <button
@@ -90,7 +87,7 @@ export default function ReportDetails({
                   className={category === item ? "chosen" : ""}
                   onClick={() => onChange({ category: item })}
                 >
-                  {item === "Other" ? "Something else" : item}
+                  {item}
                   {category === item && <Check size={13} />}
                 </button>
               ))}
@@ -98,7 +95,7 @@ export default function ReportDetails({
           </fieldset>
           {category === "Other" && (
             <label className="field-label">
-              Give it a short name <span className="optional">optional</span>
+              Short name <span className="optional">optional</span>
               <input
                 placeholder="What kind of barrier did you notice?"
                 value={customCategory}
@@ -110,7 +107,7 @@ export default function ReportDetails({
             </label>
           )}
           <div className="field-heading">
-            <label htmlFor="report-place">Where is it?</label>
+            <label htmlFor="report-place">Location</label>
             <button
               type="button"
               className="text-button"
@@ -139,7 +136,7 @@ export default function ReportDetails({
             </p>
           )}
           <label className="field-label">
-            Anything to add? <span className="optional">optional</span>
+            Notes <span className="optional">optional</span>
             <textarea
               value={note}
               onChange={(event) => onChange({ note: event.target.value })}
@@ -155,10 +152,6 @@ export default function ReportDetails({
               <ChevronRight size={13} />
             </button>
           </div>
-          <p className="fine-print">
-            Check that the representative matches where this happened. Change
-            the area if needed before sharing.
-          </p>
           {error && (
             <p className="error" role="alert">
               {error}
@@ -168,14 +161,9 @@ export default function ReportDetails({
             className="button-primary full"
             disabled={saving || locating || !category}
           >
-            <FileText size={16} />
-            {saving ? "Making report…" : "Make report"}
+            {saving ? "Saving…" : "Review report"}
             <ArrowRight size={16} />
           </button>
-          <p className="draft-note">
-            Uses the details you entered. You can edit the report before
-            sharing.
-          </p>
         </div>
       </form>
     </section>

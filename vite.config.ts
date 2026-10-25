@@ -16,7 +16,7 @@ function areaApi(): Plugin {
     });
   };
   return {
-    name: "via-area-api",
+    name: "curb-area-api",
     configureServer: configure,
     configurePreviewServer: configure,
   };

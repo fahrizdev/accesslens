@@ -1,7 +1,6 @@
 import type { RefObject } from "react";
-import { Camera, ChevronRight, FileText, ShieldCheck } from "lucide-react";
+import { ChevronRight, FileText, Plus } from "lucide-react";
 import { displayDate, reportStatusLabel, type BarrierReport } from "../reports";
-
 type Props = {
   reports: BarrierReport[];
   loading: boolean;
@@ -9,7 +8,6 @@ type Props = {
   newReport: () => void;
   openReport: (report: BarrierReport) => void;
 };
-
 export default function ReportsView({
   reports,
   loading,
@@ -19,30 +17,30 @@ export default function ReportsView({
 }: Props) {
   return (
     <section className="reports-view">
-      <div className="page-intro">
-        <span className="eyebrow">SAVED ON THIS DEVICE</span>
+      <div className="page-heading">
         <h1 ref={heading} tabIndex={-1}>
-          Your reports.
+          Reports<span className="accent-dot">.</span>
         </h1>
-        <p>Open a report to edit it or share it again.</p>
+        <button
+          className="icon-button new-report-button"
+          aria-label="New report"
+          onClick={newReport}
+        >
+          <Plus size={24} />
+        </button>
       </div>
-      <button className="button-primary reports-new" onClick={newReport}>
-        <Camera size={17} /> New report
-      </button>
       {loading ? (
-        <div className="empty-state">
-          <span className="spinner" />
-          Opening your reports…
+        <div className="empty-state" role="status">
+          <span className="spinner" /> Loading reports…
         </div>
-      ) : reports.length === 0 ? (
-        <div className="empty-state">
-          <span className="empty-symbol">
-            <FileText size={31} strokeWidth={1.1} />
+      ) : !reports.length ? (
+        <div className="empty-state reports-empty">
+          <span className="empty-stack" aria-hidden="true">
+            <FileText size={34} />
           </span>
-          <h2>Nothing here yet.</h2>
-          <p>Start with a photo to make your first report.</p>
+          <h2>No reports yet.</h2>
           <button className="button-primary" onClick={newReport}>
-            Take a photo <Camera size={16} />
+            <Plus size={18} /> New report
           </button>
         </div>
       ) : (
@@ -57,26 +55,23 @@ export default function ReportsView({
                 <img src={report.image} alt="" />
               ) : (
                 <span className="no-photo">
-                  <FileText size={25} />
+                  <FileText size={26} />
                 </span>
               )}
-              <span>
-                <small>
+              <span className="report-row-copy">
+                <span className="report-row-meta">
                   {displayDate(report.created)}
-                  <i /> {reportStatusLabel(report)}
-                </small>
+                  <i />
+                  {reportStatusLabel(report)}
+                </span>
                 <b>{report.category}</b>
-                <span>{report.place}</span>
+                <small>{report.place}</small>
               </span>
               <ChevronRight size={18} />
             </button>
           ))}
         </div>
       )}
-      <p className="privacy-caption">
-        <ShieldCheck size={13} /> Stored locally. Download important reports
-        before clearing browser data.
-      </p>
     </section>
   );
 }

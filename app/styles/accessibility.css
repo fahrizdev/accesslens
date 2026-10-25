@@ -1,45 +1,42 @@
-/* Accessibility and printing */
 @media (prefers-reduced-motion: reduce) {
   *,
-  *:before,
-  *:after {
+  *::before,
+  *::after {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
   }
+  .intro-wordmark {
+    opacity: 1;
+  }
 }
 @media (forced-colors: active) {
-  .page-intro h1 > span {
-    background: none;
-    -webkit-text-fill-color: currentColor;
-  }
-  .lens-aura {
-    background: CanvasText;
-    filter: none;
-  }
-  .lens-mark {
-    color: Canvas;
-  }
-  .gradient-circle {
-    background: ButtonFace;
-    color: ButtonText;
+  .report-launch,
+  .app-dock,
+  .photo-stage,
+  .category-options button,
+  .button-primary,
+  .button-secondary {
     border: 1px solid ButtonText;
   }
-  .category-options .chosen {
+  .category-options .chosen,
+  .app-dock [aria-current] {
     outline: 2px solid Highlight;
   }
-  .report-launch {
-    border: 1px solid ButtonText;
+  .street-upper,
+  .street-ramp,
+  .street-lower,
+  .intro-edge {
+    background: CanvasText;
   }
 }
 @media print {
   .topbar,
-  .app-footer,
-  .mobile-nav,
-  .mobile-share-dock,
+  .app-dock,
   .flow-top,
   .send-panel,
-  .toast {
+  .toast,
+  .curb-intro {
     display: none !important;
   }
   .main-content {
@@ -56,9 +53,6 @@
     border: 0;
     background: white;
     min-height: 500px;
-  }
-  .report-paper-header {
-    padding-left: 0;
   }
   .review-photo {
     object-fit: contain;

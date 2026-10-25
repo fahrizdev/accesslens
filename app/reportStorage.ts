@@ -52,7 +52,7 @@ function openDatabase(): Promise<IDBDatabase> {
       blocked = true;
       reject(
         new Error(
-          "Close other Via tabs, then reload to update your saved reports.",
+          "Close other Curb tabs, then reload to update your saved reports.",
         ),
       );
     };

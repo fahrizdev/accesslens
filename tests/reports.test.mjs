@@ -140,7 +140,7 @@ test("report text uses the supplied details", () => {
 test("makes a photo attachment and rejects unsafe URLs", async () => {
   const file = photoFile({ image: "data:image/jpeg;base64,YQ==" });
   assert.equal(file.type, "image/jpeg");
-  assert.equal(file.name, "via-photo.jpg");
+  assert.equal(file.name, "curb-photo.jpg");
   assert.equal(await file.text(), "a");
   assert.equal(photoFile({ image: "javascript:alert(1)" }), null);
 });
@@ -226,7 +226,7 @@ test("download embeds the photo and escapes user text", async () => {
     });
     const html = await blob.text();
     assert.equal(clicked, true);
-    assert.match(html, /<title>Via —/);
+    assert.match(html, /<title>Curb —/);
     assert.doesNotMatch(html, /AccessLens/);
     assert.match(html, /src="data:image\/jpeg;base64,YQ=="/);
     assert.match(html, /&lt;script&gt;/);

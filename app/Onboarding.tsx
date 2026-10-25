@@ -1,16 +1,8 @@
 import { useEffect, useRef, type FormEvent, type ReactNode } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Mail,
-  MapPin,
-  ShieldCheck,
-} from "lucide-react";
-import type { Area } from "./reports";
+import { ArrowLeft, ArrowRight, Check, MapPin, UserRound } from "lucide-react";
+import type { Area } from "./area";
 import type { SenderProfile } from "./profile";
-import { LensMark } from "./Brand";
-
+import { CurbMark } from "./Brand";
 type Props = {
   step: number;
   direction: number;
@@ -23,7 +15,6 @@ type Props = {
   submit: (event: FormEvent<HTMLFormElement>) => void;
   areaPicker: ReactNode;
 };
-
 export default function Onboarding({
   step,
   direction,
@@ -43,7 +34,7 @@ export default function Onboarding({
   return (
     <section
       className={`onboarding onboarding-step-${step}`}
-      aria-label="Set up Via"
+      aria-label="Set up Curb"
     >
       <header className="onboard-header">
         {step > 1 ? (
@@ -52,64 +43,40 @@ export default function Onboarding({
             onClick={() => move(step - 1)}
             aria-label="Previous step"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={21} />
           </button>
         ) : (
-          <span className="onboard-brand">
-            <LensMark />
-            <span>Via</span>
-          </span>
+          <CurbMark />
         )}
-        {step > 0 && (
-          <div className="setup-progress" aria-label={`Step ${step} of 3`}>
-            {[1, 2, 3].map((index) => (
-              <span key={index} className={index <= step ? "complete" : ""} />
-            ))}
-          </div>
-        )}
+        <div className="setup-progress" aria-label={`Step ${step} of 3`}>
+          {[1, 2, 3].map((index) => (
+            <span key={index} className={index <= step ? "complete" : ""} />
+          ))}
+        </div>
       </header>
       <div className={`setup-panel direction-${direction}`} key={step}>
-        <div className={`setup-art setup-art-${step}`} aria-hidden="true">
-          {step === 1 && <LensMark className="ready-mark" />}
-          {step === 2 && (
-            <div className="setup-icon">
-              <MapPin size={43} strokeWidth={1.25} />
-            </div>
-          )}
-          {step === 3 && (
-            <>
-              <LensMark className="ready-mark" />
-              <span className="ready-check">
-                <Check size={16} />
-              </span>
-            </>
-          )}
-        </div>
         <div className="setup-heading">
-          <span className="eyebrow">
-            {["", "HEY THERE", "YOUR AREA", "ALL SET"][step]}
-          </span>
           <h1 ref={heading} tabIndex={-1}>
-            {
-              [
-                "",
-                "What’s your name?",
-                "Your neighborhood.",
-                profile.name
-                  ? `You’re all set, ${profile.name.split(/\s+/)[0]}.`
-                  : "You’re all set.",
-              ][step]
-            }
+            {step === 1 ? (
+              <>
+                Hey, we’re curb<span className="accent-dot">.</span>
+              </>
+            ) : step === 2 ? (
+              <>
+                Where’s home<span className="accent-dot">?</span>
+              </>
+            ) : (
+              <>
+                You’re in<span className="accent-dot">.</span>
+              </>
+            )}
           </h1>
           <p>
-            {
-              [
-                "",
-                "Optional. You can add a signature later.",
-                "Choose an area to find your representative.",
-                "Grab a photo and add a few details to get started.",
-              ][step]
-            }
+            {step === 1
+              ? "A photo. A report. A step toward better access."
+              : step === 2
+                ? "Find your area’s representative."
+                : "Ready when you notice something."}
           </p>
         </div>
         {step === 1 && (
@@ -119,7 +86,8 @@ export default function Onboarding({
             onSubmit={submit}
           >
             <label className="field-label" htmlFor="onboarding-name">
-              Your name
+              What should we call you?{" "}
+              <span className="optional">optional</span>
               <input
                 id="onboarding-name"
                 name="name"
@@ -128,14 +96,11 @@ export default function Onboarding({
                 placeholder="Your name"
                 maxLength={80}
                 value={draft.name}
-                onChange={(event) => {
-                  setDraft({ ...draft, name: event.target.value });
-                }}
+                onChange={(event) =>
+                  setDraft({ ...draft, name: event.target.value })
+                }
               />
             </label>
-            <p className="contact-hint">
-              You can change this later in Settings or skip it for now.
-            </p>
           </form>
         )}
         {step === 2 && (
@@ -143,10 +108,10 @@ export default function Onboarding({
             {area ? (
               <>
                 <button className="saved-area" onClick={() => move(3)}>
-                  <MapPin size={20} />
+                  <MapPin size={22} />
                   <span>
-                    <small>USE YOUR SAVED AREA</small>
                     <b>{area.label}</b>
+                    <small>Use this area</small>
                   </span>
                   <ArrowRight size={18} />
                 </button>
@@ -162,35 +127,24 @@ export default function Onboarding({
         )}
         {step === 3 && (
           <div className="ready-summary">
-            <div>
-              <span className="summary-icon">
-                <Mail size={19} />
-              </span>
+            <button onClick={() => move(1)}>
+              <UserRound size={22} />
               <span>
-                <small>YOUR REPORT SIGNATURE</small>
-                <b>{profile.name || "Add your name later"}</b>
-                <p>{profile.email || "Email is optional for now"}</p>
+                <b>{profile.name || "Add a name"}</b>
+                <small>Report signature</small>
               </span>
-              <button className="text-button" onClick={() => move(1)}>
-                Edit
-              </button>
-            </div>
-            <div>
-              <span className="summary-icon">
-                <MapPin size={19} />
-              </span>
+              <ArrowRight size={17} />
+            </button>
+            <button onClick={() => move(2)}>
+              <MapPin size={22} />
               <span>
-                <small>YOUR NEIGHBORHOOD</small>
-                <b>{area?.label || "Add an area anytime"}</b>
-                <p>
-                  {area?.representative ||
-                    "Find your representative when you’re ready"}
-                </p>
+                <b>{area?.label || "Add your area"}</b>
+                <small>
+                  {area?.representative || "Find your representative"}
+                </small>
               </span>
-              <button className="text-button" onClick={() => move(2)}>
-                Edit
-              </button>
-            </div>
+              <ArrowRight size={17} />
+            </button>
           </div>
         )}
         <div className="setup-actions">
@@ -208,7 +162,7 @@ export default function Onboarding({
               className="button-primary full"
               onClick={() => finish(true)}
             >
-              Make my first report <ArrowRight size={18} />
+              Make a report <Check size={18} />
             </button>
           )}
           <button
@@ -217,21 +171,13 @@ export default function Onboarding({
               if (step === 1) {
                 setDraft(profile);
                 move(2);
-                return;
-              }
-              if (step === 3) finish();
+              } else if (step === 3) finish();
               else move(step + 1);
             }}
           >
-            {step === 3 ? "Look around first" : "Skip for now"}
+            {step === 3 ? "Go to home" : "Skip for now"}
           </button>
         </div>
-        {step === 3 && (
-          <p className="setup-assurance">
-            <ShieldCheck size={13} /> You review every report and choose where
-            to share it.
-          </p>
-        )}
       </div>
     </section>
   );

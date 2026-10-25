@@ -1,11 +1,5 @@
 import type { ChangeEvent, RefObject } from "react";
-import {
-  ArrowRight,
-  Camera,
-  ImagePlus,
-  ScanLine,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight, Camera, ImagePlus } from "lucide-react";
 
 type Props = {
   image: string;
@@ -26,36 +20,31 @@ export default function PhotoStep({
 }: Props) {
   return (
     <section className="photo-view">
-      <div className="page-intro">
-        <span className="eyebrow">01 / PHOTO</span>
+      <div className="page-heading">
         <h1 ref={heading} tabIndex={-1}>
-          What’s in the way?
+          New report<span className="accent-dot">.</span>
         </h1>
-        <p>Get the barrier and some of the space around it in the photo.</p>
       </div>
-      <div className={`photo-stage ${image ? "has-photo" : ""}`}>
+      <div className={`photo-stage${image ? " has-photo" : ""}`}>
         {image ? (
           <img src={image} alt="Your selected barrier photo" />
         ) : (
-          <>
-            <ScanLine size={53} strokeWidth={0.9} />
-            <span>Add a photo to get started.</span>
-          </>
+          <div className="capture-art" aria-hidden="true">
+            <span className="capture-frame">
+              <Camera size={50} strokeWidth={1.4} />
+            </span>
+            <span className="capture-sticker" />
+          </div>
         )}
-        <i className="scan-corner tl" />
-        <i className="scan-corner tr" />
-        <i className="scan-corner bl" />
-        <i className="scan-corner br" />
         {processing && (
           <div className="processing-overlay" role="status">
-            <span className="spinner" />
-            Preparing your photo…
+            <span className="spinner" /> Preparing photo…
           </div>
         )}
       </div>
       <div className="photo-buttons">
         <label className="button-primary camera-input">
-          <Camera size={18} /> Take a photo
+          <Camera size={19} /> Take photo
           <input
             type="file"
             accept="image/*"
@@ -66,7 +55,7 @@ export default function PhotoStep({
           />
         </label>
         <label className="button-secondary camera-input">
-          <ImagePlus size={18} /> Photo library
+          <ImagePlus size={19} /> Photo library
           <input
             type="file"
             accept="image/*"
@@ -77,8 +66,8 @@ export default function PhotoStep({
         </label>
       </div>
       {image && (
-        <button className="text-button centered" onClick={onContinue}>
-          Use this photo <ArrowRight size={15} />
+        <button className="button-primary full use-photo" onClick={onContinue}>
+          Use this photo <ArrowRight size={17} />
         </button>
       )}
       {error && (
@@ -86,10 +75,6 @@ export default function PhotoStep({
           {error}
         </p>
       )}
-      <p className="privacy-caption">
-        <ShieldCheck size={13} /> Avoid faces, license plates, and private
-        addresses.
-      </p>
     </section>
   );
 }
