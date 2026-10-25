@@ -1,16 +1,21 @@
-import type { RefObject } from "react";
+import type { ChangeEvent, RefObject } from "react";
 import { FileText, Plus } from "lucide-react";
 import { displayDate, reportStatusLabel, type BarrierReport } from "../reports";
+import PhotoPicker from "../components/PhotoPicker";
 type Props = {
   reports: BarrierReport[];
   loading: boolean;
+  processing: boolean;
+  error: string;
   heading: RefObject<HTMLHeadingElement | null>;
-  newReport: () => void;
+  newReport: (event: ChangeEvent<HTMLInputElement>) => void;
   openReport: (report: BarrierReport) => void;
 };
 export default function ReportsView({
   reports,
   loading,
+  processing,
+  error,
   heading,
   newReport,
   openReport,
@@ -21,16 +26,26 @@ export default function ReportsView({
         <h1 ref={heading} tabIndex={-1}>
           Reports
         </h1>
-        <button className="button-primary compact-button" onClick={newReport}>
-          <Plus size={15} /> New
-        </button>
+        <PhotoPicker
+          className="button-primary compact-button"
+          label="New report: take or choose a photo"
+          disabled={processing}
+          onPick={newReport}
+        >
+          <Plus size={15} /> {processing ? "Preparing…" : "New"}
+        </PhotoPicker>
       </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       {loading ? (
         <div className="empty-state" role="status">
           <span className="spinner" /> Loading reports…
         </div>
       ) : !reports.length ? (
-        <p className="quiet-empty">No reports yet</p>
+        <p className="quiet-empty">Reports you make will appear here.</p>
       ) : (
         <div className="report-grid">
           {reports.map((report) => (

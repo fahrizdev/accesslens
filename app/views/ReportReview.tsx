@@ -1,7 +1,8 @@
-import type { RefObject } from "react";
+import { useMemo, type ChangeEvent, type RefObject } from "react";
 import {
   ArrowUpRight,
   Camera,
+  ChevronRight,
   Copy,
   Download,
   FileText,
@@ -17,14 +18,16 @@ import {
   type FollowUpStatus,
 } from "../reports";
 import { officialContactUrl, type Area } from "../area";
-import { downloadPhoto, downloadReport } from "../reportFiles";
+import { downloadPhoto, downloadReport, photoFile } from "../reportFiles";
 import Representative from "../components/Representative";
+import PhotoPicker from "../components/PhotoPicker";
 import { CurbMark } from "../Brand";
 type Props = {
   current: BarrierReport;
   summary: string;
   reportArea: Area | null;
   sharing: boolean;
+  processing: boolean;
   error: string;
   heading: RefObject<HTMLHeadingElement | null>;
   sendPanel: RefObject<HTMLDivElement | null>;
@@ -34,7 +37,7 @@ type Props = {
   share: () => Promise<void>;
   copy: () => Promise<void>;
   updateFollowUp: (value: FollowUpStatus) => Promise<void>;
-  newReport: () => void;
+  newReport: (event: ChangeEvent<HTMLInputElement>) => void;
   deleteCurrent: () => void;
 };
 export default function ReportReview({
@@ -42,6 +45,7 @@ export default function ReportReview({
   summary,
   reportArea,
   sharing,
+  processing,
   error,
   heading,
   sendPanel,
@@ -55,6 +59,19 @@ export default function ReportReview({
   deleteCurrent,
 }: Props) {
   const recipient = reportArea?.representative;
+  // Only offer the share sheet where it can carry the photo.
+  const canShareFiles = useMemo(() => {
+    const file = photoFile(current);
+    try {
+      return Boolean(
+        file &&
+          typeof navigator.share === "function" &&
+          navigator.canShare?.({ files: [file] }),
+      );
+    } catch {
+      return false;
+    }
+  }, [current.image]);
   const reviewedReport = () => ({
     ...current,
     summary,
@@ -106,40 +123,47 @@ export default function ReportReview({
           </div>
         </div>
         <div className="send-panel" ref={sendPanel}>
-          <div className="send-panel-heading">
-            <h2>Share your report</h2>
+          <h2>Send it</h2>
+          <div className="recipient-inline">
+            <Representative area={reportArea} compact />
+            <button
+              type="button"
+              className={recipient ? "text-button" : "button-secondary"}
+              onClick={chooseArea}
+            >
+              {recipient ? "Change" : "Find"}
+              <ChevronRight size={14} />
+            </button>
           </div>
-          <Representative area={reportArea} compact />
-          <button className="text-button choose-recipient" onClick={chooseArea}>
-            {recipient ? "Change representative" : "Find representative"}
-            <ArrowUpRight size={15} />
-          </button>
-          <button
-            className="button-primary full share-button"
-            onClick={() => void share()}
-            disabled={sharing || !summary.trim()}
-          >
-            <Send size={18} />
-            {sharing ? "Opening…" : "Share report"}
-          </button>
-          <p className="share-explainer">
-            Opens your share sheet. You choose where to send it.
-          </p>
-          <a
-            className="button-secondary full"
-            href={officialContactUrl(reportArea?.contactUrl)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {recipient
-              ? "Representative’s website"
-              : "Find an official contact"}
-            <ArrowUpRight size={17} />
-          </a>
-          <details className="share-alternatives">
-            <summary>Copy & download</summary>
-            <div>
-              <button className="button-secondary" onClick={() => void copy()}>
+          {recipient && (
+            <a
+              className="text-button official-link"
+              href={officialContactUrl(reportArea?.contactUrl)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {recipient}’s official page <ArrowUpRight size={15} />
+            </a>
+          )}
+          <div className="send-actions">
+            {canShareFiles && (
+              <button
+                className="button-primary full"
+                onClick={() => void share()}
+                disabled={sharing || !summary.trim()}
+              >
+                <Send size={18} />
+                {sharing ? "Opening…" : "Share report"}
+              </button>
+            )}
+            <div className="send-actions-row">
+              <button
+                className={
+                  canShareFiles ? "button-secondary" : "button-primary"
+                }
+                onClick={() => void copy()}
+                disabled={!summary.trim()}
+              >
                 <Copy size={16} /> Copy message
               </button>
               <button
@@ -149,14 +173,19 @@ export default function ReportReview({
               >
                 <Download size={16} /> Save photo
               </button>
-              <button
-                className="text-button"
-                onClick={() => downloadReport(reviewedReport())}
-              >
-                <FileText size={16} /> Download full report
-              </button>
             </div>
-          </details>
+            <p className="share-explainer">
+              {canShareFiles
+                ? "Share opens your device’s share sheet with the photo attached. You choose where it goes."
+                : "Copy the message and save the photo, then paste and attach them wherever you send it."}
+            </p>
+            <button
+              className="text-button download-report"
+              onClick={() => downloadReport(reviewedReport())}
+            >
+              <FileText size={16} /> Download full report
+            </button>
+          </div>
           <label className="follow-up-field">
             <span>Follow-up</span>
             <select
@@ -172,7 +201,6 @@ export default function ReportReview({
                 </option>
               ))}
             </select>
-            <small>Updated by you.</small>
           </label>
           {error && (
             <p className="error" role="alert">
@@ -180,15 +208,16 @@ export default function ReportReview({
             </p>
           )}
           <div className="report-actions">
-            <button className="text-button" onClick={newReport}>
-              <Camera size={16} /> New report
-            </button>
-            <button
-              className="icon-button delete-link"
-              onClick={deleteCurrent}
-              aria-label="Delete report"
+            <PhotoPicker
+              className="text-button"
+              label="New report: take or choose a photo"
+              disabled={processing}
+              onPick={newReport}
             >
-              <Trash2 size={18} />
+              <Camera size={16} /> {processing ? "Preparing…" : "New report"}
+            </PhotoPicker>
+            <button className="text-button delete-link" onClick={deleteCurrent}>
+              <Trash2 size={16} /> Delete report
             </button>
           </div>
         </div>

@@ -1,5 +1,3 @@
-import { useEffect, useRef, useState } from "react";
-
 export function CurbMark({ className = "" }: { className?: string }) {
   return (
     <svg
@@ -12,34 +10,5 @@ export function CurbMark({ className = "" }: { className?: string }) {
         fill="currentColor"
       />
     </svg>
-  );
-}
-
-export function Splash({ onContinue }: { onContinue: () => void }) {
-  const [leaving, setLeaving] = useState(false);
-  const onContinueRef = useRef(onContinue);
-  onContinueRef.current = onContinue;
-  useEffect(() => {
-    const reduced = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    const fade = window.setTimeout(() => setLeaving(true), reduced ? 0 : 700);
-    const finish = window.setTimeout(
-      () => onContinueRef.current(),
-      reduced ? 60 : 950,
-    );
-    return () => {
-      window.clearTimeout(fade);
-      window.clearTimeout(finish);
-    };
-  }, []);
-  return (
-    <div
-      className={`curb-intro${leaving ? " intro-leaving" : ""}`}
-      role="img"
-      aria-label="Curb"
-    >
-      <CurbMark />
-    </div>
   );
 }

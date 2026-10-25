@@ -41,9 +41,9 @@ import { lookupArea } from "./area";
 import { preparePhoto as resizePhoto } from "./photos";
 import AreaPicker from "./components/AreaPicker";
 import Modal from "./components/Modal";
-import { CurbMark, Splash } from "./Brand";
+import PhotoPicker from "./components/PhotoPicker";
+import { CurbMark } from "./Brand";
 import HomeDashboard from "./Home";
-import PhotoStep from "./views/PhotoStep";
 import ReportDetails, {
   emptyReportForm,
   type ReportFormFields,
@@ -52,9 +52,8 @@ import ReportReview from "./views/ReportReview";
 import ReportsView from "./views/ReportsView";
 import SettingsView from "./views/SettingsView";
 
-type View = "home" | "photo" | "details" | "review" | "reports" | "settings";
+type View = "home" | "details" | "review" | "reports" | "settings";
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true);
   const [profile, setProfile] = useState<SenderProfile>(() =>
     normalizeProfile(readPreference(PROFILE_KEY)),
   );
@@ -88,7 +87,7 @@ export default function App() {
   const gpsController = useRef<AbortController | null>(null);
   const unsavedChanges =
     hasUnsaved ||
-    (["photo", "details"].includes(view) && !!(image || note || place)) ||
+    (view === "details" && !!(image || note || place)) ||
     (view === "review" && summary !== current?.summary);
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
@@ -123,11 +122,9 @@ export default function App() {
       gpsController.current?.abort();
       setLocating(false);
     }
-    if (view !== "photo") {
-      imageVersion.current++;
-      setProcessing(false);
-    }
-  }, [view, showSplash]);
+    imageVersion.current++;
+    setProcessing(false);
+  }, [view]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(""), 4000);
@@ -163,22 +160,34 @@ export default function App() {
       ...(place === coordinates ? { place: "" } : {}),
     });
   }
-  function newReport() {
+  function takeFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    return file;
+  }
+  // Picking a photo starts a fresh report and opens its details.
+  function newReport(event: ChangeEvent<HTMLInputElement>) {
+    const file = takeFile(event);
+    if (!file) return;
     saveReview();
     reportVersion.current++;
-    imageVersion.current++;
     gpsVersion.current++;
+    gpsController.current?.abort();
+    setLocating(false);
     setDraft(emptyReportForm);
     setReportArea(area);
     setCurrent(null);
     setSummary("");
     setDraftId(crypto.randomUUID());
-    setProcessing(false);
-    setView("photo");
+    void preparePhoto(file);
+  }
+  function changePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = takeFile(event);
+    if (file) void preparePhoto(file);
   }
   function navigate(next: View) {
     if (
-      ["photo", "details"].includes(view) &&
+      view === "details" &&
       (image || note || place) &&
       !window.confirm(
         "Leave this draft? You’ll lose these changes. Your saved reports will stay here.",
@@ -194,10 +203,7 @@ export default function App() {
     setLocating(false);
     setView(next);
   }
-  async function preparePhoto(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  async function preparePhoto(file: File) {
     const version = ++imageVersion.current;
     setProcessing(true);
     setError("");
@@ -378,7 +384,6 @@ export default function App() {
       setError(
         "This browser cannot share photo attachments directly. Copy the message and save the photo below, then attach it on the official contact page.",
       );
-      sendPanel.current?.querySelector("details")?.setAttribute("open", "");
       sendPanel.current?.scrollIntoView({ behavior: "auto", block: "start" });
       return;
     }
@@ -430,10 +435,11 @@ export default function App() {
       setError(e instanceof Error ? e.message : "Could not delete report.");
     }
   }
-  const isFlow = ["photo", "details", "review"].includes(view);
+  const isFlow = view === "details" || view === "review";
+  const flowStep = view === "details" ? 1 : 2;
   return (
     <>
-      <div className={`app-shell view-${view}`} inert={showSplash}>
+      <div className={`app-shell view-${view}`}>
         <a className="skip-link" href="#main">
           Skip to content
         </a>
@@ -463,6 +469,8 @@ export default function App() {
             <HomeDashboard
               reports={reports}
               loading={loading}
+              processing={processing}
+              error={error}
               headingRef={heading}
               onReport={newReport}
               onReports={() => setView("reports")}
@@ -475,30 +483,18 @@ export default function App() {
               <button
                 className="back-button"
                 onClick={() =>
-                  view === "photo"
-                    ? navigate("home")
-                    : setView(view === "details" ? "photo" : "details")
+                  view === "details" ? navigate("home") : setView("details")
                 }
               >
                 <ArrowLeft size={16} />
-                {view === "photo" ? "Home" : "Back"}
+                {view === "details" ? "Home" : "Back"}
               </button>
               <ol className="flow-steps" aria-label="Report progress">
                 {["Photo", "Details", "Review"].map((label, index) => (
                   <li
                     key={label}
-                    className={
-                      index <=
-                      (view === "photo" ? 0 : view === "details" ? 1 : 2)
-                        ? "active"
-                        : ""
-                    }
-                    aria-current={
-                      index ===
-                      (view === "photo" ? 0 : view === "details" ? 1 : 2)
-                        ? "step"
-                        : undefined
-                    }
+                    className={index <= flowStep ? "active" : ""}
+                    aria-current={index === flowStep ? "step" : undefined}
                   >
                     {label}
                   </li>
@@ -506,27 +502,18 @@ export default function App() {
               </ol>
             </div>
           )}
-          {view === "photo" && (
-            <PhotoStep
-              image={image}
-              processing={processing}
-              error={error}
-              heading={heading}
-              preparePhoto={preparePhoto}
-              onContinue={() => setView("details")}
-            />
-          )}
 
           {view === "details" && (
             <ReportDetails
               draft={draft}
               reportArea={reportArea}
               locating={locating}
+              processing={processing}
               saving={saving}
               error={error}
               heading={heading}
               onChange={updateDraft}
-              onPhoto={() => setView("photo")}
+              onPhoto={changePhoto}
               onArea={() => setAreaModal("report")}
               onRemovePin={removePin}
               addLocation={addLocation}
@@ -540,6 +527,7 @@ export default function App() {
               summary={summary}
               reportArea={reportArea}
               sharing={sharing}
+              processing={processing}
               error={error}
               heading={heading}
               sendPanel={sendPanel}
@@ -558,6 +546,8 @@ export default function App() {
             <ReportsView
               reports={reports}
               loading={loading}
+              processing={processing}
+              error={error}
               heading={heading}
               newReport={newReport}
               openReport={openReport}
@@ -592,16 +582,22 @@ export default function App() {
             <Home size={22} />
             <span>Home</span>
           </button>
-          <button
-            className="dock-create"
-            aria-current={isFlow ? "page" : undefined}
-            onClick={() => {
-              if (!isFlow) newReport();
-            }}
-          >
-            <Camera size={21} />
-            <span>Report</span>
-          </button>
+          {isFlow ? (
+            <button className="dock-create" aria-current="page">
+              <Camera size={21} />
+              <span>New</span>
+            </button>
+          ) : (
+            <PhotoPicker
+              className="dock-create"
+              label="New report: take or choose a photo"
+              disabled={processing}
+              onPick={newReport}
+            >
+              <Camera size={21} />
+              <span aria-hidden="true">New</span>
+            </PhotoPicker>
+          )}
           <button
             aria-current={view === "reports" ? "page" : undefined}
             onClick={() => navigate("reports")}
@@ -787,7 +783,6 @@ export default function App() {
           </Modal>
         )}
       </div>
-      {showSplash && <Splash onContinue={() => setShowSplash(false)} />}
     </>
   );
 }

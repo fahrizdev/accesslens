@@ -1,12 +1,15 @@
-import type { RefObject } from "react";
+import type { ChangeEvent, RefObject } from "react";
 import { Camera, ChevronRight, FileText } from "lucide-react";
 import { displayDate, reportStatusLabel, type BarrierReport } from "./reports";
+import PhotoPicker from "./components/PhotoPicker";
 
 type Props = {
   reports: BarrierReport[];
   loading: boolean;
+  processing: boolean;
+  error: string;
   headingRef: RefObject<HTMLHeadingElement | null>;
-  onReport: () => void;
+  onReport: (event: ChangeEvent<HTMLInputElement>) => void;
   onReports: () => void;
   onOpenReport: (report: BarrierReport) => void;
 };
@@ -14,54 +17,49 @@ type Props = {
 export default function HomeDashboard({
   reports,
   loading,
+  processing,
+  error,
   headingRef,
   onReport,
   onReports,
   onOpenReport,
 }: Props) {
-  const latest = reports[0];
+  const firstRun = !loading && !reports.length;
   return (
     <section className="dashboard">
       <h1 className="sr-only" ref={headingRef} tabIndex={-1}>
         Home
       </h1>
-      <section className="home-capture" aria-labelledby="home-report-heading">
-        <h2 className="section-label" id="home-report-heading">
-          Report
-        </h2>
-        <div className="home-capture-grid">
-          <button
-            className="capture-tile"
-            onClick={onReport}
-            aria-label="New report"
-          >
-            <span className="capture-tile-title">New report</span>
-            <span className="tile-shutter">
-              <Camera size={19} />
-            </span>
-          </button>
-          {latest && (
-            <button
-              className="home-photo-card"
-              onClick={() => onOpenReport(latest)}
-            >
-              {latest.image ? (
-                <img src={latest.image} alt="" />
-              ) : (
-                <span className="no-photo">
-                  <FileText size={24} />
-                </span>
-              )}
-              <span className="home-photo-caption">
-                <b>{latest.category}</b>
-                <small>{reportStatusLabel(latest)}</small>
-              </span>
-              <span className="tile-open">
-                <ChevronRight size={18} />
-              </span>
-            </button>
+      <section className="home-hero" aria-labelledby="home-hero-heading">
+        <h2 id="home-hero-heading">Spot a barrier? Report it.</h2>
+        {firstRun && (
+          <p className="home-hero-copy">
+            Photograph a blocked ramp, a stairs-only entrance, or a broken path.
+            Curb turns it into a ready-to-send report and helps you find who to
+            send it to.
+          </p>
+        )}
+        <PhotoPicker
+          className="button-primary full"
+          label="New report: take or choose a photo"
+          disabled={processing}
+          onPick={onReport}
+        >
+          {processing ? (
+            <>
+              <span className="spinner" /> Preparing photo…
+            </>
+          ) : (
+            <>
+              <Camera size={18} /> Take or choose a photo
+            </>
           )}
-        </div>
+        </PhotoPicker>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
       </section>
       <section
         className="dashboard-reports"
@@ -71,9 +69,11 @@ export default function HomeDashboard({
           <h2 className="section-label" id="recent-reports-heading">
             Recent reports
           </h2>
-          <button className="text-button" onClick={onReports}>
-            See all
-          </button>
+          {reports.length > 3 && (
+            <button className="text-button" onClick={onReports}>
+              See all
+            </button>
+          )}
         </div>
         {loading ? (
           <div className="empty-state" role="status">
@@ -106,7 +106,7 @@ export default function HomeDashboard({
             ))}
           </div>
         ) : (
-          <p className="quiet-empty">No reports yet</p>
+          <p className="quiet-empty">Reports you make will appear here.</p>
         )}
       </section>
     </section>

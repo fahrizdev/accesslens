@@ -18,8 +18,8 @@ export default function Representative({
       <div>
         <span className="micro-label">
           {area?.representative
-            ? "YOUR U.S. HOUSE REPRESENTATIVE"
-            : "YOUR REPRESENTATIVE"}
+            ? "Your U.S. House representative"
+            : "Your representative"}
         </span>
         <h3>{area?.representative || "Find your representative"}</h3>
         <p>

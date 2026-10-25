@@ -1,95 +1,23 @@
-/* Home: a camera tile, real report photos, and a short list. */
-.home-capture > .section-label {
-  margin: 7px 0 20px;
-}
-.home-capture-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 13px;
-  max-width: 430px;
-}
-.capture-tile,
-.home-photo-card {
-  position: relative;
-  overflow: hidden;
-  display: block;
-  aspect-ratio: 0.71;
-  border-radius: 22px;
-  text-align: left;
-  padding: 0;
-}
-.capture-tile {
+/* Home: one clear action, then recent reports. */
+.home-hero {
+  padding: 26px 24px 24px;
   background: #191919;
   border: 1px solid #303030;
+  border-radius: 22px;
 }
-.capture-tile:hover {
-  background: #1e1e1e;
-}
-.capture-tile-title {
-  position: absolute;
-  top: 18px;
-  left: 17px;
-  right: 17px;
-  font-family: var(--serif);
-  font-size: 22px;
+.home-hero > h2 {
+  font-size: 1.75rem;
   line-height: 1.15;
-  letter-spacing: -0.03em;
 }
-.tile-shutter {
-  display: grid;
-  place-items: center;
-  width: 47px;
-  height: 38px;
-  position: absolute;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
-  background: #eeeeea;
-  color: #111;
-  border-radius: 15px;
+.home-hero-copy {
+  margin-top: 12px;
+  color: #b4b4b1;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  max-width: 34em;
 }
-.home-photo-card {
-  background: #151515;
-  border: 1px solid #343434;
-}
-.home-photo-card > img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.home-photo-caption {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 16px 14px 25px;
-  background: linear-gradient(#0009, transparent);
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  color: white;
-}
-.home-photo-caption b {
-  font-family: var(--serif);
-  font-size: 20px;
-  line-height: 1.12;
-  font-weight: 400;
-  letter-spacing: -0.03em;
-}
-.home-photo-caption small {
-  font-size: 10px;
-}
-.tile-open {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 35px;
-  border-radius: 13px;
-  background: #101010dd;
+.home-hero > .photo-picker {
+  margin-top: 22px;
 }
 .dashboard-reports {
   margin-top: 31px;
@@ -97,7 +25,7 @@
   border-top: 1px solid #252525;
 }
 .section-heading .text-button {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .dashboard-report {
@@ -132,20 +60,20 @@
 }
 .report-row-copy > b {
   font-family: var(--serif);
-  font-size: 19px;
+  font-size: 1.1875rem;
   font-weight: 400;
   letter-spacing: -0.025em;
 }
 .report-row-copy > small {
   color: #aaa;
-  font-size: 11px;
+  font-size: 0.8125rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .report-row-meta {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
   line-height: 1.5;
 }
 .dashboard-report > svg {
@@ -159,48 +87,13 @@
   background: #191919;
   color: #777;
 }
-/* Capture uses the native camera/library picker. */
-.photo-view {
-  max-width: 490px;
-  margin: auto;
-}
-.photo-stage {
-  display: grid;
-  place-items: center;
-  position: relative;
-  overflow: hidden;
-  aspect-ratio: 0.86;
-  background: #080808;
-  border: 1px solid #222;
-  border-radius: 24px;
-}
-.photo-stage > img {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-.capture-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  color: #8b8b89;
-  font-size: 11px;
-}
-.camera-controls {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: center;
-  margin-top: 22px;
-  min-height: 76px;
-}
-.camera-input {
+/* Photos come from the device's own camera/library chooser. */
+.photo-picker {
   position: relative;
   cursor: pointer;
   overflow: hidden;
 }
-.camera-input > input {
+.photo-picker > input {
   opacity: 0;
   position: absolute;
   inset: 0;
@@ -208,58 +101,13 @@
   width: 100%;
   cursor: pointer;
 }
-.camera-input:focus-within {
+.photo-picker:focus-within {
   outline: 2px solid var(--ink);
   outline-offset: 4px;
 }
-.camera-input:has(input:disabled) {
-  opacity: 0.4;
+.photo-picker:has(input:disabled) {
+  opacity: 0.6;
   cursor: default;
-}
-.library-control {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  width: 66px;
-  min-height: 65px;
-  color: #b1b1af;
-  border-radius: 12px;
-}
-.shutter-control {
-  width: 71px;
-  height: 71px;
-  border: 1px solid #aaa;
-  border-radius: 50%;
-  padding: 5px;
-  justify-self: center;
-}
-.shutter-disc {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: #eeeeea;
-  border-radius: 50%;
-}
-.camera-control-spacer {
-  width: 66px;
-  justify-self: end;
-}
-.processing-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-  background: #101010ef;
-  font-size: 12px;
-}
-.use-photo {
-  margin-top: 21px;
 }
 /* Saved reports */
 .report-grid {
@@ -295,20 +143,20 @@
 }
 .saved-report-heading > b {
   font-family: var(--serif);
-  font-size: 20px;
+  font-size: 1.25rem;
   line-height: 1.2;
   font-weight: 400;
   letter-spacing: -0.025em;
 }
 .saved-report-heading > small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
   flex-shrink: 0;
 }
 .saved-report-status {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
   margin-top: 7px;
 }
 /* Details */
@@ -338,7 +186,7 @@
   background: #191919e8;
   border-radius: 13px;
   padding: 10px 13px;
-  font-size: 11px;
+  font-size: 0.8125rem;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -358,7 +206,7 @@ legend {
   padding: 0;
   margin-bottom: 13px;
   color: #b4b4b1;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .category-options {
   display: flex;
@@ -374,7 +222,7 @@ legend {
   border: 1px solid #333;
   border-radius: 12px;
   background: #181818;
-  font-size: 12px;
+  font-size: 0.875rem;
   text-align: left;
 }
 .category-options > .chosen {
@@ -390,11 +238,11 @@ legend {
   margin-bottom: -16px;
 }
 .field-heading > label {
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .field-heading .text-button {
   color: #b5b5b2;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .gps-caption {
   display: flex;
@@ -403,11 +251,11 @@ legend {
   gap: 7px;
   margin-top: -10px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .gps-caption button {
   text-decoration: underline;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .recipient-inline {
   display: flex;
@@ -439,18 +287,17 @@ legend {
 }
 .micro-label {
   display: block;
-  font-size: 9px;
-  letter-spacing: 0.07em;
+  font-size: 0.875rem;
   color: #9e9e9a;
   margin-bottom: 6px;
 }
 .representative h3 {
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.4;
   font-weight: 400;
 }
 .representative p {
-  font-size: 11px;
+  font-size: 0.8125rem;
   line-height: 1.6;
   color: var(--muted);
   margin-top: 5px;
@@ -483,7 +330,7 @@ legend {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .report-paper-header .curb-mark {
   width: 23px;
@@ -491,7 +338,7 @@ legend {
 }
 .report-paper-header > small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .review-photo {
   width: 100%;
@@ -503,7 +350,7 @@ legend {
   padding: 22px;
 }
 .report-category {
-  font-size: 24px;
+  font-size: 1.5rem;
 }
 .report-place {
   display: flex;
@@ -511,7 +358,7 @@ legend {
   gap: 7px;
   margin-top: 11px;
   color: #a3a3a0;
-  font-size: 12px;
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 .report-place > svg {
@@ -522,7 +369,7 @@ legend {
   margin: 26px 0 11px;
 }
 .summary-editor {
-  font-size: 13px;
+  font-size: 0.9375rem;
   line-height: 1.8;
   min-height: 280px;
 }
@@ -531,51 +378,49 @@ legend {
   top: 27px;
   padding: 23px 0;
 }
-.send-panel-heading {
-  margin-bottom: 23px;
-}
 .send-panel h2 {
-  font-size: 24px;
-}
-.choose-recipient {
-  margin: 5px 0 15px 44px;
-  color: #aaa;
-  font-size: 11px;
-  text-align: left;
-  justify-content: flex-start;
+  font-size: 1.5rem;
+  margin-bottom: 14px;
 }
 .send-panel .representative {
   align-items: flex-start;
 }
 .share-explainer {
   margin: 11px 0 20px;
-  font-size: 11px;
+  font-size: 0.8125rem;
   line-height: 1.7;
   color: var(--muted);
 }
 .send-panel > .button-secondary {
-  font-size: 12px;
+  font-size: 0.875rem;
 }
-.share-alternatives {
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  padding: 18px 0;
-  margin-top: 24px;
+.send-panel .recipient-inline .button-secondary {
+  min-height: 40px;
+  padding: 8px 14px;
 }
-summary {
-  cursor: pointer;
-  font-size: 12px;
-  min-height: 30px;
-  line-height: 30px;
+.official-link {
+  margin-top: 6px;
+  color: #c4c4c1;
 }
-.share-alternatives > div {
+.send-actions {
+  margin-top: 22px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  margin-top: 14px;
+  gap: 10px;
 }
-.share-alternatives .button-secondary {
-  min-height: 43px;
+.send-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.send-actions-row > button {
+  padding-left: 12px;
+  padding-right: 12px;
+  white-space: nowrap;
+}
+.download-report {
+  align-self: flex-start;
+  color: #c4c4c1;
 }
 .follow-up-field {
   display: block;
@@ -583,27 +428,23 @@ summary {
 }
 .follow-up-field > span {
   display: block;
-  font-size: 12px;
+  font-size: 0.875rem;
   margin-bottom: 10px;
 }
 .follow-up-field select {
-  font-size: 12px;
-}
-.follow-up-field > small {
-  display: block;
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 9px;
+  font-size: 0.875rem;
 }
 .report-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-top: 22px;
+  margin-top: 28px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
 }
 .delete-link {
-  color: #a9a9a6;
+  color: #f0a39b;
 }
 /* Profile */
 .settings-view {
@@ -629,7 +470,7 @@ summary {
   color: #ddd;
   border-radius: 50%;
   font-family: var(--serif);
-  font-size: 28px;
+  font-size: 1.75rem;
 }
 .profile-identity > span:nth-child(2) {
   flex: 1;
@@ -640,13 +481,13 @@ summary {
 }
 .profile-identity b {
   font-family: var(--serif);
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 400;
   letter-spacing: -0.025em;
   overflow-wrap: anywhere;
 }
 .profile-identity small {
-  font-size: 12px;
+  font-size: 0.875rem;
   color: var(--muted);
   overflow-wrap: anywhere;
 }
@@ -670,12 +511,12 @@ summary {
   gap: 7px;
 }
 .settings-group b {
-  font-size: 13px;
+  font-size: 0.9375rem;
   font-weight: 400;
 }
 .settings-group small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .settings-group > button > svg {
   width: 20px;
@@ -685,7 +526,7 @@ summary {
   margin-top: 34px;
 }
 .profile-representative > h2 {
-  font-size: 22px;
+  font-size: 1.375rem;
   margin-bottom: 23px;
 }
 .representative-profile-card {
@@ -700,11 +541,11 @@ summary {
   color: #aaa;
 }
 .representative-profile-card b {
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .representative-profile-card p {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.8125rem;
   line-height: 1.6;
   margin-top: 7px;
 }
@@ -716,7 +557,7 @@ summary {
 }
 .representative-actions .text-button,
 .profile-representative > .text-button {
-  font-size: 11px;
+  font-size: 0.8125rem;
   color: #aaa;
 }
 /* Area selection */
@@ -743,11 +584,11 @@ summary {
   flex: 1;
 }
 .area-method b {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 400;
 }
 .area-method small {
-  font-size: 11px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .area-town-link {
@@ -765,7 +606,7 @@ summary {
   margin-top: 25px;
 }
 .area-field-hint {
-  font-size: 11px;
+  font-size: 0.8125rem;
   line-height: 1.6;
   color: var(--muted);
   margin-top: 11px;
@@ -774,7 +615,7 @@ summary {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 14px;
+  font-size: 0.875rem;
   margin-bottom: 23px;
 }
 .area-result > .representative {
@@ -783,7 +624,7 @@ summary {
 .area-result > small {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
   line-height: 1.6;
   margin-top: 13px;
 }

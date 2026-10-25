@@ -3,12 +3,6 @@
     max-width: 680px;
     margin: auto;
   }
-  .home-capture-grid {
-    max-width: 430px;
-  }
-  .home-capture-grid:has(.capture-tile:only-child) {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 @media (max-width: 700px) {
   .topbar {
@@ -19,7 +13,7 @@
     gap: 6px;
   }
   .brand > span {
-    font-size: 29px;
+    font-size: 1.8125rem;
   }
   .brand .curb-mark {
     width: 29px;
@@ -33,29 +27,16 @@
     padding: 12px 22px calc(110px + env(safe-area-inset-bottom));
   }
   h1 {
-    font-size: 29px;
+    font-size: 1.8125rem;
   }
   .page-heading {
     margin-bottom: 25px;
   }
-  .home-capture > .section-label {
-    margin-top: 4px;
-    margin-bottom: 18px;
+  .home-hero {
+    padding: 22px 20px 20px;
   }
-  .home-capture-grid {
-    gap: 12px;
-  }
-  .capture-tile,
-  .home-photo-card {
-    border-radius: 20px;
-  }
-  .capture-tile-title {
-    font-size: 21px;
-    top: 16px;
-    left: 14px;
-  }
-  .home-photo-caption b {
-    font-size: 19px;
+  .home-hero > h2 {
+    font-size: 1.5625rem;
   }
   .dashboard-reports {
     margin-top: 28px;
@@ -75,10 +56,9 @@
     border-top: 1px solid #262626;
     background: #101010f5;
   }
-  .app-dock > button {
+  .app-dock > button,
+  .app-dock > label {
     gap: 7px;
-    font-size: 10px;
-    letter-spacing: 0.06em;
     min-height: 44px;
   }
   .flow-top {
@@ -87,16 +67,6 @@
   }
   .flow-steps {
     gap: 14px;
-  }
-  .photo-stage {
-    aspect-ratio: 0.84;
-    max-height: 52dvh;
-  }
-  .photo-view .page-heading {
-    margin-bottom: 22px;
-  }
-  .camera-controls {
-    margin-top: 19px;
   }
   .report-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -111,7 +81,7 @@
     margin-top: 12px;
   }
   .saved-report-heading > b {
-    font-size: 19px;
+    font-size: 1.1875rem;
   }
   .saved-report-status {
     margin-top: 5px;
@@ -155,7 +125,7 @@
     padding-top: 24px;
   }
   .summary-editor {
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .sheet {
     position: fixed;
@@ -174,11 +144,7 @@
   input:not([type="file"]),
   textarea,
   select {
-    font-size: 16px;
-  }
-  .curb-intro > .curb-mark {
-    width: 78px;
-    height: 78px;
+    font-size: 1rem;
   }
 }
 @media (max-width: 370px) {
@@ -190,20 +156,14 @@
     padding-left: 19px;
     padding-right: 19px;
   }
-  .app-dock > button {
+  .app-dock > button,
+  .app-dock > label {
     gap: 6px;
-    font-size: 9px;
-  }
-  .capture-tile-title {
-    font-size: 19px;
-  }
-  .home-photo-caption b {
-    font-size: 17px;
   }
   .dashboard-report {
     gap: 12px;
   }
   .report-row-copy > b {
-    font-size: 17px;
+    font-size: 1.0625rem;
   }
 }

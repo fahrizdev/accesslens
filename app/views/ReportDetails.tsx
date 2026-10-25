@@ -1,4 +1,4 @@
-import type { FormEvent, RefObject } from "react";
+import type { ChangeEvent, FormEvent, RefObject } from "react";
 import {
   ArrowRight,
   Camera,
@@ -10,6 +10,7 @@ import {
 import { categories } from "../reports";
 import type { Area } from "../area";
 import Representative from "../components/Representative";
+import PhotoPicker from "../components/PhotoPicker";
 
 export type ReportFormFields = {
   image: string;
@@ -33,11 +34,12 @@ type Props = {
   draft: ReportFormFields;
   reportArea: Area | null;
   locating: boolean;
+  processing: boolean;
   saving: boolean;
   error: string;
   heading: RefObject<HTMLHeadingElement | null>;
   onChange: (patch: Partial<ReportFormFields>) => void;
-  onPhoto: () => void;
+  onPhoto: (event: ChangeEvent<HTMLInputElement>) => void;
   onArea: () => void;
   onRemovePin: () => void;
   addLocation: () => void;
@@ -48,6 +50,7 @@ export default function ReportDetails({
   draft: { image, category, customCategory, note, place, coordinates },
   reportArea,
   locating,
+  processing,
   saving,
   error,
   heading,
@@ -71,9 +74,14 @@ export default function ReportDetails({
       >
         <div className="details-photo-panel">
           <img src={image} alt="The barrier you’re reporting" />
-          <button type="button" className="photo-edit" onClick={onPhoto}>
-            <Camera size={14} /> Change photo
-          </button>
+          <PhotoPicker
+            className="photo-edit"
+            label="Change photo"
+            disabled={processing}
+            onPick={onPhoto}
+          >
+            <Camera size={14} /> {processing ? "Preparing…" : "Change photo"}
+          </PhotoPicker>
         </div>
         <div className="details-fields">
           <fieldset className="category-field">

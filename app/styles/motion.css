@@ -3,22 +3,3 @@
     transform: rotate(360deg);
   }
 }
-.curb-intro {
-  position: fixed;
-  z-index: 200;
-  inset: 0;
-  background: #101010;
-  color: #f3f2ee;
-  display: grid;
-  place-items: center;
-  opacity: 1;
-  transition: opacity 0.25s ease;
-}
-.curb-intro > .curb-mark {
-  width: 82px;
-  height: 82px;
-}
-.curb-intro.intro-leaving {
-  opacity: 0;
-  pointer-events: none;
-}
