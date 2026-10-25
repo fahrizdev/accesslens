@@ -118,9 +118,9 @@ test("editing a report updates the same saved record", async () => {
 });
 test("follow-up labels describe user-reported outcomes", () => {
   assert.equal(followUpLabels["not-sent"], "Not sent");
-  assert.equal(followUpLabels.sent, "Marked sent");
+  assert.equal(followUpLabels.sent, "Sent");
   assert.equal(followUpLabels.referred, "Referred elsewhere");
-  assert.equal(followUpLabels.resolved, "Marked resolved");
+  assert.equal(followUpLabels.resolved, "Resolved");
 });
 test("report text uses the supplied details", () => {
   const message = buildSummary(
@@ -136,6 +136,20 @@ test("report text uses the supplied details", () => {
   assert.ok(message.split(/\s+/).length < 90);
   assert.doesNotMatch(message, /ADA violation|legally|detected by AI/);
   assert.doesNotMatch(buildSummary("Other", "Park", "", ""), /\(\)/);
+  assert.match(message, /Photo attached\./);
+});
+test("report text only mentions a photo when one is attached", () => {
+  const message = buildSummary(
+    "Missing signage",
+    "Library",
+    "",
+    "",
+    "",
+    undefined,
+    false,
+  );
+  assert.doesNotMatch(message, /Photo attached/);
+  assert.match(message, /responsible\? Thank you\./);
 });
 test("makes a photo attachment and rejects unsafe URLs", async () => {
   const file = photoFile({ image: "data:image/jpeg;base64,YQ==" });

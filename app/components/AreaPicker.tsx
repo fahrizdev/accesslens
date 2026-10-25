@@ -25,7 +25,19 @@ export default function AreaPicker({
   const [method, setMethod] = useState<"choice" | "address" | "town">("choice");
   const requestId = useRef(0);
   const controller = useRef<AbortController | null>(null);
+  // The button someone pressed disappears when the panel changes, so move
+  // focus to the start of what replaced it instead of losing it.
+  const root = useRef<HTMLDivElement>(null);
+  const focusNext = useRef(false);
+  useEffect(() => {
+    if (!focusNext.current) return;
+    focusNext.current = false;
+    root.current
+      ?.querySelector<HTMLElement>("[data-autofocus]")
+      ?.focus({ preventScroll: false });
+  }, [method, result]);
   function chooseMethod(next: "choice" | "address" | "town") {
+    focusNext.current = true;
     requestId.current++;
     controller.current?.abort();
     setBusy(false);
@@ -45,7 +57,10 @@ export default function AreaPicker({
       controller.current?.abort();
       controller.current = new AbortController();
       const area = await lookupArea(input, controller.current.signal);
-      if (version === requestId.current) setResult(area);
+      if (version === requestId.current) {
+        focusNext.current = true;
+        setResult(area);
+      }
     } catch (e) {
       if (version === requestId.current)
         setError(
@@ -95,13 +110,17 @@ export default function AreaPicker({
     void lookup({ address: address.trim() }, version);
   }
   return (
-    <div className="area-picker area-picker-calm">
+    <div className="area-picker area-picker-calm" ref={root}>
+      <p className="sr-only" role="status">
+        {busy ? "Finding your area…" : ""}
+      </p>
       {!result && (
         <>
           {method === "choice" ? (
             <div className="area-methods">
               <button
                 className="area-method area-location"
+                data-autofocus
                 onClick={gps}
                 disabled={busy}
               >
@@ -114,6 +133,7 @@ export default function AreaPicker({
                 </span>
                 <span>
                   <b>{busy ? "Finding your area…" : "Use my location"}</b>
+                  <small>Fastest if you’re there now</small>
                 </span>
                 <ChevronRight size={17} />
               </button>
@@ -150,7 +170,9 @@ export default function AreaPicker({
                   <label className="field-label">
                     Public address
                     <input
+                      data-autofocus
                       autoComplete="off"
+                      aria-describedby="area-address-hint"
                       value={address}
                       onChange={(event) => setAddress(event.target.value)}
                       placeholder="Street address, city, and state"
@@ -158,7 +180,7 @@ export default function AreaPicker({
                       maxLength={200}
                     />
                   </label>
-                  <p className="area-field-hint">
+                  <p className="area-field-hint" id="area-address-hint">
                     Try a library, school, or another nearby public place.
                   </p>
                   <button className="button-primary full" disabled={busy}>
@@ -177,7 +199,9 @@ export default function AreaPicker({
                   <label className="field-label">
                     Town and state
                     <input
+                      data-autofocus
                       autoComplete="off"
+                      aria-describedby="area-town-hint"
                       value={town}
                       onChange={(event) => setTown(event.target.value)}
                       required
@@ -185,7 +209,7 @@ export default function AreaPicker({
                       maxLength={100}
                     />
                   </label>
-                  <p className="area-field-hint">
+                  <p className="area-field-hint" id="area-town-hint">
                     You can find your representative later.
                   </p>
                   <button className="button-primary full">
@@ -203,11 +227,11 @@ export default function AreaPicker({
         </p>
       )}
       {result && (
-        <div className="area-result" aria-live="polite">
-          <div className="area-result-label">
-            <MapPin size={15} />
-            <b>{result.label}</b>
-          </div>
+        <div className="area-result">
+          <h3 className="area-result-label" tabIndex={-1} data-autofocus>
+            <MapPin size={15} aria-hidden="true" />
+            {result.label}
+          </h3>
           <Representative area={result} compact />
           <button
             className="button-primary full"

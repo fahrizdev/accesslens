@@ -10,6 +10,10 @@
 @media (forced-colors: active) {
   .rep-card,
   .first-run,
+  .start-tile,
+  .photo-empty,
+  .status-card,
+  .toast,
   .tab-bar,
   .tab-camera,
   .chip,
@@ -18,7 +22,7 @@
   .button-secondary {
     border: 1px solid ButtonText;
   }
-  .chip[aria-pressed="true"],
+  .chip:has(input:checked),
   .segmented [aria-pressed="true"],
   .tab-bar [aria-current] {
     outline: 2px solid Highlight;

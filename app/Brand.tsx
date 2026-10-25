@@ -12,13 +12,24 @@ export function CurbMark({ className = "" }: { className?: string }) {
     >
       <g transform="translate(0 -5)">
         <path
-          d="M10 27H26L37 42H54V50H10Z"
+          className="curb-ramp"
+          d="M7 28H19L37 41H57V47H7Z"
           fill="currentColor"
           stroke="currentColor"
-          strokeWidth="8"
+          strokeWidth="5"
           strokeLinejoin="round"
         />
-        <circle className="curb-wheel" cx="46.5" cy="31" r="7" />
+        <g className="curb-wheel">
+          <circle
+            cx="47"
+            cy="31.5"
+            r="5.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3.5"
+          />
+          <circle cx="47" cy="31.5" r="1.7" fill="currentColor" />
+        </g>
       </g>
     </svg>
   );

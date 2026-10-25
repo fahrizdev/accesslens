@@ -1,7 +1,7 @@
 {
   "name": "Curb",
   "short_name": "Curb",
-  "description": "Take a photo, add the details, and share an accessibility report.",
+  "description": "Report an accessibility barrier to your representative, with or without a photo.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",

@@ -32,9 +32,10 @@ export default function Representative({
       {area?.representative && (
         <span
           className="verified-mark"
+          role="img"
           aria-label="Matched from the House Clerk directory"
         >
-          <Check size={15} />
+          <Check size={15} strokeWidth={3} aria-hidden="true" />
         </span>
       )}
     </div>

@@ -5,7 +5,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
-import { Camera, Check, FileText, Home, UserRound } from "lucide-react";
+import { Camera, Check, FileText, Home, UserRound, X } from "lucide-react";
 import {
   createDraft,
   categories,
@@ -79,7 +79,14 @@ export default function App() {
   // Entrance motion plays when the app first appears, not on every tab switch.
   const [arriving, setArriving] = useState(true);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
+  // Short confirmations fade on their own; anything that tells the person
+  // what to do next stays until they dismiss it.
+  const [toast, setToastState] = useState<{
+    text: string;
+    sticky: boolean;
+  } | null>(null);
+  const setToast = (text: string, sticky = false) =>
+    setToastState(text ? { text, sticky } : null);
   const [areaModal, setAreaModal] = useState<"profile" | "report" | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const sendPanel = useRef<HTMLDivElement>(null);
@@ -148,8 +155,8 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [welcomed]);
   useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(""), 4000);
+    if (!toast || toast.sticky) return;
+    const timer = window.setTimeout(() => setToastState(null), 5000);
     return () => clearTimeout(timer);
   }, [toast]);
   function rememberArea(next: Area) {
@@ -191,6 +198,16 @@ export default function App() {
   function newReport(event: ChangeEvent<HTMLInputElement>) {
     const file = takeFile(event);
     if (!file) return;
+    resetDraft();
+    void preparePhoto(file);
+  }
+  // Not everyone can take a photo; a report works without one.
+  function newReportWithoutPhoto() {
+    resetDraft();
+    setError("");
+    setView("details");
+  }
+  function resetDraft() {
     saveReview();
     reportVersion.current++;
     gpsVersion.current++;
@@ -201,7 +218,6 @@ export default function App() {
     setCurrent(null);
     setSummary("");
     setDraftId(crypto.randomUUID());
-    void preparePhoto(file);
   }
   function changePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = takeFile(event);
@@ -276,6 +292,7 @@ export default function App() {
           if (version === gpsVersion.current)
             setToast(
               "GPS pin added, but the lookup didn’t work. Check the representative below.",
+              true,
             );
         } finally {
           if (version === gpsVersion.current) setLocating(false);
@@ -305,19 +322,18 @@ export default function App() {
     if ((await persist(updated)) && version === reportVersion.current) {
       setToast(
         status === "sent"
-          ? "Sent. It’s under Waiting in Reports."
+          ? "Marked as sent. You’ll find it under Sent."
           : status === "resolved"
             ? "Marked resolved. Nice work."
-            : `Updated: ${followUpLabels[status]}.`,
+            : status === "replied"
+              ? "Reply noted. Mark it resolved once it’s fixed."
+              : `Updated: ${followUpLabels[status]}.`,
       );
     }
   }
   async function generate(event: FormEvent) {
     event.preventDefault();
-    if (!image || !category || !place.trim()) {
-      setError("Add a photo, barrier type, and location.");
-      return;
-    }
+    if (!category || !place.trim()) return;
     if (locating) {
       setError("Wait for the location check to finish.");
       return;
@@ -350,6 +366,7 @@ export default function App() {
     ) {
       setToast(
         "Your edited message was kept. Check that it matches the updated details.",
+        true,
       );
     }
     await persist(report);
@@ -405,14 +422,16 @@ export default function App() {
       // Some browsers expose canShare but throw for file attachments.
     }
     setError("");
-    if (!file || !attachmentsSupported) {
+    // A report without a photo can still go through the share sheet as text.
+    const textOnly = !file && typeof navigator.share === "function";
+    if (!textOnly && (!file || !attachmentsSupported)) {
       await copyAndSavePhoto(report, version);
       return;
     }
     setSharing(true);
     try {
       await navigator.share({
-        files: [file],
+        ...(file ? { files: [file] } : {}),
         title: `Curb: ${report.category}`,
         text: summary,
       });
@@ -434,7 +453,7 @@ export default function App() {
     try {
       await navigator.clipboard.writeText(summary);
       if (version === reportVersion.current)
-        setToast("Message copied. Paste it into their form.");
+        setToast("Message copied. Paste it into their form.", true);
     } catch {
       // The form still opens; the message can be copied by hand.
     }
@@ -450,6 +469,7 @@ export default function App() {
           report.image
             ? "Message copied and photo saved. Paste and attach them where you send it."
             : "Message copied. Paste it where you send it.",
+          true,
         );
     } catch {
       if (version === reportVersion.current)
@@ -510,8 +530,8 @@ export default function App() {
               area={area}
               headingRef={heading}
               onReport={newReport}
+              onReportWithoutPhoto={newReportWithoutPhoto}
               onReports={() => navigate("reports")}
-              onProfile={() => navigate("settings")}
               onArea={() => setAreaModal("profile")}
               onOpenReport={openReport}
             />
@@ -622,12 +642,27 @@ export default function App() {
             </PhotoPicker>
           </div>
         )}
-        {toast && (
-          <div className="toast" role="status">
-            <Check size={16} />
-            {toast}
-          </div>
-        )}
+        {/* Always present so screen readers announce each new message. */}
+        <div className="toast-region" role="status" aria-live="polite">
+          {toast && (
+            <div
+              className={`toast ${toast.sticky ? "toast-sticky" : ""}`}
+              key={toast.text}
+            >
+              <Check size={16} aria-hidden="true" />
+              <span>{toast.text}</span>
+              {toast.sticky && (
+                <button
+                  className="toast-close"
+                  aria-label="Dismiss message"
+                  onClick={() => setToastState(null)}
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         {areaModal && (
           <Modal
             title={

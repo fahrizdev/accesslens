@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, ChevronLeft, CircleCheck, Landmark, Lock } from "lucide-react";
 import { CurbMark } from "./Brand";
 import AreaPicker from "./components/AreaPicker";
@@ -7,8 +7,8 @@ import type { Area } from "./area";
 const features = [
   {
     icon: Camera,
-    title: "Snap a barrier",
-    text: "A blocked ramp, a stairs-only entrance or a broken path. One photo is enough.",
+    title: "Spot a barrier",
+    text: "A blocked ramp, a stairs-only entrance or a broken path. Snap a photo or just describe it.",
   },
   {
     icon: Landmark,
@@ -29,6 +29,13 @@ export default function Welcome({
   onFinish: (area: Area | null) => void;
 }) {
   const [step, setStep] = useState<"intro" | "area">("intro");
+  // Moving between steps replaces the whole screen; start reading at its title.
+  const title = useRef<HTMLHeadingElement>(null);
+  const moved = useRef(false);
+  useEffect(() => {
+    if (moved.current) title.current?.focus();
+    moved.current = true;
+  }, [step]);
   if (step === "area")
     return (
       <main className="welcome" key="area">
@@ -42,7 +49,9 @@ export default function Welcome({
           <span className="welcome-symbol">
             <Landmark size={30} strokeWidth={1.8} />
           </span>
-          <h1>Who should hear about it?</h1>
+          <h1 ref={title} tabIndex={-1}>
+            Who should hear about it?
+          </h1>
           <p className="welcome-lede">
             Curb finds the U.S. House representative for your area so every
             report starts addressed to them.
@@ -67,7 +76,9 @@ export default function Welcome({
         <span className="app-icon">
           <CurbMark className="rolling" />
         </span>
-        <h1>Welcome to Curb</h1>
+        <h1 ref={title} tabIndex={-1}>
+          Welcome to Curb
+        </h1>
       </div>
       <ul className="welcome-features">
         {features.map(({ icon: Icon, title, text }, index) => (

@@ -2,7 +2,7 @@ import type { RefObject } from "react";
 import { ArrowUpRight, ChevronRight, Lock, UserRound } from "lucide-react";
 import { officialContactUrl, type Area } from "../area";
 import type { SenderProfile } from "../profile";
-import type { BarrierReport } from "../reports";
+import { reportGroup, type BarrierReport } from "../reports";
 type Props = {
   profile: SenderProfile;
   area: Area | null;
@@ -20,13 +20,11 @@ export default function SettingsView({
   onArea,
 }: Props) {
   const initial = profile.name.trim().charAt(0).toUpperCase();
-  const resolved = reports.filter((r) => r.followUp === "resolved").length;
-  const waiting = reports.filter(
-    (r) => r.status !== "Draft" && r.followUp !== "resolved",
-  ).length;
+  const resolved = reports.filter((r) => reportGroup(r) === "Resolved").length;
+  const sent = reports.filter((r) => reportGroup(r) === "Sent").length;
   const stats = [
     { value: reports.length, label: "Reports" },
-    { value: waiting, label: "Waiting" },
+    { value: sent, label: "Sent" },
     { value: resolved, label: "Resolved" },
   ];
   return (

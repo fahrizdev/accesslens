@@ -1,16 +1,11 @@
 import { useState, type RefObject } from "react";
 import { ChevronRight } from "lucide-react";
-import { displayDate, reportStatusLabel, type BarrierReport } from "../reports";
-import { ReportThumb } from "../Home";
+import { displayDate, reportGroup, type BarrierReport } from "../reports";
+import { ReportThumb, StatusTag } from "../Home";
 import { CurbMark } from "../Brand";
 
-type Filter = "All" | "Drafts" | "Waiting" | "Resolved";
-const filters: Filter[] = ["All", "Drafts", "Waiting", "Resolved"];
-
-function reportGroup(report: BarrierReport): Filter {
-  if (report.followUp === "resolved") return "Resolved";
-  return report.status === "Draft" ? "Drafts" : "Waiting";
-}
+type Filter = "All" | "Drafts" | "Sent" | "Resolved";
+const filters: Filter[] = ["All", "Drafts", "Sent", "Resolved"];
 
 type Props = {
   reports: BarrierReport[];
@@ -31,6 +26,11 @@ export default function ReportsView({
     filter === "All"
       ? reports
       : reports.filter((report) => reportGroup(report) === filter);
+  const count = (item: Filter) =>
+    item === "All"
+      ? reports.length
+      : reports.filter((report) => reportGroup(report) === item).length;
+  const countText = `${visible.length} ${filter === "All" ? "" : `${filter.toLowerCase()} `}report${visible.length === 1 ? "" : "s"}`;
   return (
     <section className="reports-view">
       <header className="large-title">
@@ -51,16 +51,24 @@ export default function ReportsView({
             onClick={() => setFilter(item)}
           >
             {item}
+            {reports.length > 0 && (
+              <span className="segment-count" aria-hidden="true">
+                {count(item)}
+              </span>
+            )}
           </button>
         ))}
       </div>
+      <p className="sr-only" role="status">
+        {loading ? "" : countText}
+      </p>
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
       {loading ? (
-        <p className="quiet-empty" role="status">
+        <p className="quiet-empty">
           <span className="spinner" /> Loading reports…
         </p>
       ) : !reports.length ? (
@@ -70,7 +78,13 @@ export default function ReportsView({
           <p>Tap the camera below when you spot a barrier.</p>
         </div>
       ) : !visible.length ? (
-        <p className="quiet-empty">Nothing here yet.</p>
+        <p className="quiet-empty">
+          {filter === "Drafts"
+            ? "No drafts. Everything’s been sent."
+            : filter === "Sent"
+              ? "Nothing waiting on a reply."
+              : "Nothing resolved yet. It’ll show here once it’s fixed."}
+        </p>
       ) : (
         <div
           className="grouped report-list enter"
@@ -89,11 +103,16 @@ export default function ReportsView({
                 <span className="row-copy">
                   <b>{report.category}</b>
                   <small>{report.place}</small>
-                  <small>
-                    {reportStatusLabel(report)} · {displayDate(report.created)}
-                  </small>
+                  <span className="report-meta">
+                    <StatusTag report={report} />
+                    <small>{displayDate(report.created)}</small>
+                  </span>
                 </span>
-                <ChevronRight size={16} className="chevron" />
+                <ChevronRight
+                  size={16}
+                  className="chevron"
+                  aria-hidden="true"
+                />
               </span>
             </button>
           ))}

@@ -35,12 +35,22 @@ export type BarrierReport = {
 };
 export const followUpLabels: Record<FollowUpStatus, string> = {
   "not-sent": "Not sent",
-  sent: "Marked sent",
+  sent: "Sent",
   waiting: "Waiting for a reply",
-  replied: "Reply received",
+  replied: "They replied",
   referred: "Referred elsewhere",
-  resolved: "Marked resolved",
+  resolved: "Resolved",
 };
+
+// The three groups people see in Reports, the stats and the status dots.
+export type ReportGroup = "Drafts" | "Sent" | "Resolved";
+export function reportGroup(
+  report: Pick<BarrierReport, "followUp">,
+): ReportGroup {
+  if (report.followUp === "resolved") return "Resolved";
+  return report.followUp && report.followUp !== "not-sent" ? "Sent" : "Drafts";
+}
+
 export function buildSummary(
   category: string,
   place: string,
@@ -48,9 +58,10 @@ export function buildSummary(
   coordinates?: string,
   name?: string,
   sender?: SenderProfile,
+  hasPhoto = true,
 ) {
   const signOff = signature(sender);
-  return `${name ? `Hello Representative ${name},` : "Hello,"}\n\nI’m reporting a possible accessibility barrier.\n\n${category}\nLocation: ${place}${coordinates ? ` (${coordinates})` : ""}${note.trim() ? `\n${note.trim()}` : ""}\n\nCould your office review this or direct me to the team responsible? Photo attached. Thank you.${signOff ? `\n\n${signOff}` : ""}`;
+  return `${name ? `Hello Representative ${name},` : "Hello,"}\n\nI’m reporting a possible accessibility barrier.\n\n${category}\nLocation: ${place}${coordinates ? ` (${coordinates})` : ""}${note.trim() ? `\n${note.trim()}` : ""}\n\nCould your office review this or direct me to the team responsible?${hasPhoto ? " Photo attached." : ""} Thank you.${signOff ? `\n\n${signOff}` : ""}`;
 }
 export function retargetSummary(
   text: string,
@@ -77,7 +88,8 @@ export function reportStatusLabel(report: BarrierReport): string {
   if (report.followUp && report.followUp !== "not-sent") {
     return followUpLabels[report.followUp];
   }
-  return report.status === "Shared" ? "Shared via an app" : "Draft";
+  // Opened in another app, but the person hasn't said it went out.
+  return report.status === "Shared" ? "Not confirmed sent" : "Draft";
 }
 
 export function displayDate(value: string): string {
@@ -138,6 +150,7 @@ export function createDraft(
     details.coordinates,
     details.recipient?.representative,
     reportSender,
+    Boolean(details.image),
   );
   const original =
     previous &&
@@ -148,6 +161,7 @@ export function createDraft(
       previous.coordinates,
       previous.recipient?.representative,
       previous.sender,
+      Boolean(previous.image),
     );
   const summary =
     previous && previous.summary !== original

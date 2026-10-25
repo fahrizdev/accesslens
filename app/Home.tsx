@@ -5,9 +5,9 @@ import {
   ChevronRight,
   FileText,
   Landmark,
-  UserRound,
+  PenLine,
 } from "lucide-react";
-import { reportStatusLabel, type BarrierReport } from "./reports";
+import { reportGroup, reportStatusLabel, type BarrierReport } from "./reports";
 import { officialContactUrl, type Area } from "./area";
 import { greetingFor } from "./greeting";
 import { CurbMark } from "./Brand";
@@ -21,8 +21,8 @@ type Props = {
   area: Area | null;
   headingRef: RefObject<HTMLHeadingElement | null>;
   onReport: (event: ChangeEvent<HTMLInputElement>) => void;
+  onReportWithoutPhoto: () => void;
   onReports: () => void;
-  onProfile: () => void;
   onArea: () => void;
   onOpenReport: (report: BarrierReport) => void;
 };
@@ -32,7 +32,25 @@ export function ReportThumb({ report }: { report: BarrierReport }) {
     <img src={report.image} alt="" />
   ) : (
     <span className="no-photo">
-      <FileText size={20} />
+      <FileText size={20} aria-hidden="true" />
+    </span>
+  );
+}
+
+// Status is always written out; the dot's color only repeats it.
+export function StatusTag({
+  report,
+  className = "",
+}: {
+  report: BarrierReport;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`status-tag status-${reportGroup(report).toLowerCase()} ${className}`}
+    >
+      <span className="status-dot" aria-hidden="true" />
+      {reportStatusLabel(report)}
     </span>
   );
 }
@@ -48,19 +66,19 @@ function RepresentativeCard({
     return (
       <button className="rep-card rep-card-empty" onClick={onArea}>
         <span className="rep-icon">
-          <Landmark size={22} />
+          <Landmark size={22} aria-hidden="true" />
         </span>
         <span className="row-copy">
           <b>Who gets your reports?</b>
           <small>Find your representative</small>
         </span>
-        <ChevronRight size={18} className="chevron" />
+        <ChevronRight size={18} className="chevron" aria-hidden="true" />
       </button>
     );
   return (
     <div className="rep-card">
       <span className="rep-icon">
-        <Landmark size={22} />
+        <Landmark size={22} aria-hidden="true" />
       </span>
       <span className="row-copy">
         <small>Your reports go to</small>
@@ -72,9 +90,9 @@ function RepresentativeCard({
         href={officialContactUrl(area.contactUrl)}
         target="_blank"
         rel="noreferrer"
-        aria-label={`${area.representative}’s official page`}
+        aria-label={`${area.representative}’s official page (opens in a new tab)`}
       >
-        <ArrowUpRight size={19} />
+        <ArrowUpRight size={19} aria-hidden="true" />
       </a>
     </div>
   );
@@ -88,8 +106,8 @@ export default function HomeDashboard({
   area,
   headingRef,
   onReport,
+  onReportWithoutPhoto,
   onReports,
-  onProfile,
   onArea,
   onOpenReport,
 }: Props) {
@@ -99,16 +117,16 @@ export default function HomeDashboard({
   return (
     <section className="home">
       <header className="large-title">
-        <h1 ref={headingRef} tabIndex={-1}>
-          {greetingFor(new Date()).text}
-        </h1>
-        <button
-          className="glass-circle"
-          aria-label="Your profile"
-          onClick={onProfile}
-        >
-          <UserRound size={21} />
-        </button>
+        <div>
+          <h1 ref={headingRef} tabIndex={-1}>
+            {greetingFor(new Date()).text}
+          </h1>
+          <p className="large-subtitle">
+            {area?.label
+              ? `Reporting barriers in ${area.label}`
+              : "Report barriers to the people who can fix them"}
+          </p>
+        </div>
       </header>
 
       {error && (
@@ -117,13 +135,13 @@ export default function HomeDashboard({
         </p>
       )}
 
-      {firstRun && (
+      {firstRun ? (
         <section className="first-run enter" aria-labelledby="first-title">
           <CurbMark className="rolling" />
           <h2 id="first-title">Spot a barrier?</h2>
           <p>
-            Take a photo and Curb writes the report for you, ready to send to
-            your representative.
+            Take a photo or describe it. Curb writes the report for you, ready
+            to send to your representative.
           </p>
           <PhotoPicker
             className="button-primary"
@@ -138,11 +156,44 @@ export default function HomeDashboard({
               </>
             ) : (
               <>
-                <Camera size={19} /> Take a photo
+                <Camera size={19} aria-hidden="true" /> Take a photo
               </>
             )}
           </PhotoPicker>
+          <button className="text-button" onClick={onReportWithoutPhoto}>
+            <PenLine size={16} aria-hidden="true" /> Report without a photo
+          </button>
         </section>
+      ) : (
+        !loading && (
+          <section
+            className="home-section start-row enter"
+            aria-label="Start a report"
+          >
+            <PhotoPicker
+              className="start-tile start-tile-primary"
+              label="New report: take a photo"
+              camera
+              disabled={processing}
+              onPick={onReport}
+            >
+              <span className="start-icon">
+                {processing ? (
+                  <span className="spinner" />
+                ) : (
+                  <Camera size={22} aria-hidden="true" />
+                )}
+              </span>
+              <b>{processing ? "Preparing…" : "Take a photo"}</b>
+            </PhotoPicker>
+            <button className="start-tile" onClick={onReportWithoutPhoto}>
+              <span className="start-icon">
+                <PenLine size={22} aria-hidden="true" />
+              </span>
+              <b>Describe it</b>
+            </button>
+          </section>
+        )
       )}
 
       <div className="home-section enter" style={{ animationDelay: "80ms" }}>
@@ -173,10 +224,14 @@ export default function HomeDashboard({
 
       {recent.length > 0 && (
         <section className="home-section" aria-labelledby="recent-title">
-          <button className="section-link" onClick={onReports}>
-            <h2 id="recent-title">Recent</h2>
-            <ChevronRight size={20} />
-          </button>
+          <h2 className="section-heading">
+            <button className="section-link" onClick={onReports}>
+              <span id="recent-title">Recent</span>
+              <span className="section-link-more">
+                See all <ChevronRight size={16} aria-hidden="true" />
+              </span>
+            </button>
+          </h2>
           <div className="shelf">
             {recent.map((report) => (
               <button
@@ -186,7 +241,7 @@ export default function HomeDashboard({
               >
                 <span className="shelf-photo">
                   <ReportThumb report={report} />
-                  <span className="glass-tag">{reportStatusLabel(report)}</span>
+                  <StatusTag report={report} className="glass-tag" />
                 </span>
                 <b>{report.category}</b>
                 <small>{report.place}</small>

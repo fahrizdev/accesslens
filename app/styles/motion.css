@@ -33,24 +33,26 @@
     transform: scale(0.82);
   }
 }
+/* The wheel starts on the sidewalk, rolls down the ramp and settles,
+   turning as it goes. */
 @keyframes roll {
   0%,
   10% {
     opacity: 0;
-    transform: translate(-28.5px, -15px);
+    transform: translate(-35px, -13px) rotate(-300deg);
   }
   20% {
     opacity: 1;
-    transform: translate(-28.5px, -15px);
+    transform: translate(-35px, -13px) rotate(-300deg);
   }
-  42% {
-    transform: translate(-20px, -15px);
+  40% {
+    transform: translate(-27px, -13px) rotate(-230deg);
   }
-  72% {
-    transform: translate(-6px, 0);
+  74% {
+    transform: translate(-7px, 0) rotate(-60deg);
   }
-  86% {
-    transform: translate(1.5px, 0);
+  88% {
+    transform: translate(1.5px, 0) rotate(10deg);
   }
   100% {
     opacity: 1;
@@ -95,7 +97,7 @@
   z-index: 200;
   display: grid;
   place-items: center;
-  background: #000;
+  background: var(--background);
 }
 .launch .curb-mark {
   width: 112px;

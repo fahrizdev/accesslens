@@ -1,18 +1,15 @@
-import type { RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
+  PenLine,
   Send,
   Trash2,
 } from "lucide-react";
-import {
-  followUpLabels,
-  type BarrierReport,
-  type FollowUpStatus,
-} from "../reports";
+import type { BarrierReport, FollowUpStatus } from "../reports";
 import { officialContactUrl, type Area } from "../area";
-import { ReportThumb } from "../Home";
+import { ReportThumb, StatusTag } from "../Home";
 
 // "Pramila Jayapal" -> "Rep. Jayapal", so the button says exactly who it reaches.
 export function repTitle(name: string) {
@@ -42,6 +39,20 @@ type Props = {
   updateFollowUp: (value: FollowUpStatus) => Promise<void>;
   deleteCurrent: () => void;
 };
+
+// What someone can do next depends on where the report is.
+function nextSteps(
+  followUp: FollowUpStatus,
+): { label: string; value: FollowUpStatus }[] {
+  if (followUp === "resolved") return [{ label: "Reopen", value: "sent" }];
+  if (followUp === "replied" || followUp === "referred")
+    return [{ label: "Mark resolved", value: "resolved" }];
+  return [
+    { label: "They replied", value: "replied" },
+    { label: "Mark resolved", value: "resolved" },
+  ];
+}
+
 export default function ReportReview({
   current,
   summary,
@@ -64,39 +75,57 @@ export default function ReportReview({
   const recipient = reportArea?.representative;
   const followUp = current.followUp || "not-sent";
   const askIfSent = sendAttempted && followUp === "not-sent";
+  const sentQuestion = useRef<HTMLHeadingElement>(null);
+  // The send button is replaced by this question, so bring focus along.
+  useEffect(() => {
+    if (askIfSent) sentQuestion.current?.focus();
+  }, [askIfSent]);
   return (
     <section className="flow-view">
       <header className="nav-bar">
         <button className="nav-text" onClick={onBack}>
-          <ChevronLeft size={24} strokeWidth={2.4} /> Details
+          <ChevronLeft size={24} strokeWidth={2.4} aria-hidden="true" /> Details
         </button>
         <h1 ref={heading} tabIndex={-1}>
           Review
         </h1>
-        <button
-          className="nav-icon danger"
-          aria-label="Delete report"
-          onClick={deleteCurrent}
-        >
-          <Trash2 size={20} />
-        </button>
+        <span />
       </header>
       <div className="flow-body">
+        {followUp !== "not-sent" && (
+          <section className="status-card enter" aria-label="Follow-up">
+            <StatusTag report={current} />
+            <div className="status-actions">
+              {nextSteps(followUp).map(({ label, value }) => (
+                <button
+                  key={value}
+                  className="pill-button"
+                  onClick={() => void updateFollowUp(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
         <div className="grouped compose enter">
           <button
             className={`compose-to ${recipient ? "" : "needs-recipient"}`}
             onClick={chooseArea}
           >
-            <span className="muted">To:</span>
+            <span className="muted">To</span>
             <span className="compose-recipient">
               {recipient
                 ? `${recipient}${reportArea?.district ? ` · ${reportArea.district}` : ""}`
                 : "Choose who to send it to"}
             </span>
-            <ChevronRight size={16} className="chevron" />
+            <ChevronRight size={16} className="chevron" aria-hidden="true" />
           </button>
-          <label className="sr-only" htmlFor="report-summary">
-            Message
+          <label className="compose-label" htmlFor="report-summary">
+            <span>Message</span>
+            <span className="compose-hint">
+              <PenLine size={13} aria-hidden="true" /> Tap to edit
+            </span>
           </label>
           <textarea
             id="report-summary"
@@ -118,37 +147,25 @@ export default function ReportReview({
             </span>
           </div>
         </div>
-        <p className="group-footer">
-          Tap the message to make changes before you send.
-        </p>
-        {followUp !== "not-sent" && (
-          <p className="status-line">
-            <span className="status-dot" aria-hidden="true" />
-            {followUpLabels[followUp]}
-            {followUp === "resolved" ? (
-              <button onClick={() => void updateFollowUp("waiting")}>
-                Reopen
-              </button>
-            ) : (
-              <button onClick={() => void updateFollowUp("resolved")}>
-                Mark resolved
-              </button>
-            )}
-          </p>
-        )}
         {error && (
           <p className="error" role="alert">
             {error}
           </p>
         )}
+        <button
+          className="text-button danger-text delete-report"
+          onClick={deleteCurrent}
+        >
+          <Trash2 size={16} aria-hidden="true" /> Delete report
+        </button>
       </div>
       <div className="flow-footer send-footer" ref={sendPanel}>
         {askIfSent ? (
           <div className="sent-check" role="group" aria-labelledby="sent-q">
-            <b id="sent-q">
+            <h2 id="sent-q" ref={sentQuestion} tabIndex={-1}>
               Did it reach {recipient ? repTitle(recipient) : "them"}?
-            </b>
-            <p>We’ll keep it under Waiting until you hear back.</p>
+            </h2>
+            <p>We’ll keep it under Sent until you hear back.</p>
             <div className="sent-check-actions">
               <button className="button-secondary" onClick={dismissSendCheck}>
                 Not yet
@@ -168,12 +185,14 @@ export default function ReportReview({
               onClick={() => void send()}
               disabled={sharing || !summary.trim()}
             >
-              <Send size={18} />
+              <Send size={18} aria-hidden="true" />
               {sharing
                 ? "Opening…"
-                : recipient
-                  ? `Send to ${repTitle(recipient)}`
-                  : "Send report"}
+                : followUp !== "not-sent"
+                  ? "Send again"
+                  : recipient
+                    ? `Send to ${repTitle(recipient)}`
+                    : "Send report"}
             </button>
             {recipient && (
               <a
@@ -183,7 +202,8 @@ export default function ReportReview({
                 rel="noreferrer"
                 onClick={onOfficialPage}
               >
-                Use their official contact form <ArrowUpRight size={15} />
+                Use their official contact form (copies the message)
+                <ArrowUpRight size={15} aria-hidden="true" />
               </a>
             )}
           </>

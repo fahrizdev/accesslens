@@ -1,22 +1,25 @@
 @media (hover: hover) {
-  .button-primary:hover:not(:disabled) {
-    background: #e5e5ea;
+  .button-primary:hover:not(:disabled):not(.danger-button) {
+    filter: brightness(1.06);
   }
-  .chip:hover:not([aria-pressed="true"]),
+  .chip:hover:not(:has(input:checked)),
   .button-secondary:hover:not(:disabled),
+  .pill-button:hover,
   .row-action:hover,
-  .area-method:hover {
+  .area-method:hover,
+  .start-tile:not(.start-tile-primary):hover {
     background: var(--surface-pressed);
   }
   .report-row:hover,
   .rep-card-empty:hover,
   .compose-to:hover,
   .settings-row:hover,
-  .form-row:is(button):hover {
-    background: #232325;
+  .form-row:is(button):hover,
+  .draft-card:hover {
+    background: var(--surface-hover);
   }
   .tab-bar button:hover:not([aria-current]) {
-    background: rgb(255 255 255 / 0.06);
+    color: var(--ink);
   }
 }
 @media (min-width: 600px) {
@@ -28,8 +31,7 @@
     margin: 0 -24px;
     padding: 0 16px;
   }
-  .shelf,
-  .chip-row {
+  .shelf {
     margin: 0 -24px;
     padding-left: 24px;
     padding-right: 24px;
@@ -82,11 +84,6 @@
   }
   .shelf-card {
     width: auto;
-  }
-  .chip-row {
-    flex-wrap: wrap;
-    margin: 0;
-    padding: 0;
   }
   .view-details .flow-body {
     display: grid;

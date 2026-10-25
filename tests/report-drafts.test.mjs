@@ -4,6 +4,7 @@ import {
   createDraft,
   normalizeReport,
   reportStatusLabel,
+  reportGroup,
   displayDate,
 } from "../app/reports.ts";
 import { photoFile } from "../app/reportFiles.ts";
@@ -102,7 +103,7 @@ test("follow-up labels remain visible for legacy inconsistent status fields", ()
     reportStatusLabel({ status: "Draft", followUp: "waiting" }),
     "Waiting for a reply",
   );
-  assert.equal(reportStatusLabel({ status: "Shared" }), "Shared via an app");
+  assert.equal(reportStatusLabel({ status: "Shared" }), "Not confirmed sent");
 });
 
 test("malformed base64 is rejected without crashing sharing or downloads", () => {
@@ -114,4 +115,21 @@ test("malformed base64 is rejected without crashing sharing or downloads", () =>
   ]) {
     assert.equal(photoFile({ image }), null);
   }
+});
+
+test("reports fall into the Drafts, Sent and Resolved groups", () => {
+  assert.equal(reportGroup({}), "Drafts");
+  assert.equal(reportGroup({ followUp: "not-sent" }), "Drafts");
+  for (const followUp of ["sent", "waiting", "replied", "referred"])
+    assert.equal(reportGroup({ followUp }), "Sent");
+  assert.equal(reportGroup({ followUp: "resolved" }), "Resolved");
+});
+
+test("a report without a photo does not claim one is attached", () => {
+  const report = createDraft(
+    { ...details, image: "" },
+    { name: "", email: "" },
+    "no-photo",
+  );
+  assert.doesNotMatch(report.summary, /Photo attached/);
 });

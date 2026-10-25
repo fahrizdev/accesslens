@@ -1,3 +1,5 @@
+/* Color tokens. Dark is the default; light follows the phone's setting.
+   Text tokens are checked against every surface they sit on (WCAG AA). */
 :root {
   color-scheme: dark;
   font-family:
@@ -6,24 +8,77 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  color: #fff;
-  background: #000;
   --background: #000;
   --surface: #1c1c1e;
   --surface-raised: #2c2c2e;
   --surface-pressed: #3a3a3c;
+  --surface-hover: #232325;
+  --card: #141416;
+  --card-edge: rgb(255 255 255 / 0.1);
   --ink: #fff;
-  --muted: #98989f;
-  --faint: #636366;
+  --muted: #98989f; /* 5.9:1 on surface */
+  --faint: #86868b; /* icons: 3.9:1 on raised surface */
   --separator: #38383a;
-  --accent: #ff8a3d;
-  --danger: #ff453a;
+  --accent: #ff8a3d; /* fills and accent text: 7.3:1 on surface */
+  --accent-ink: #ff8a3d;
+  --accent-soft: rgb(255 138 61 / 0.15);
+  --on-accent: #1c1108; /* 7.9:1 on accent */
+  --success: #30d158;
+  --danger: #ff6961; /* text and icons: 6:1 on surface */
+  --danger-fill: #d70015; /* with white text: 5.4:1 */
+  --error-bg: rgb(255 69 58 / 0.14);
+  --error-ink: #ff9f99;
+  --selected-bg: #fff;
+  --selected-ink: #000;
+  --segment-on: #48484a;
+  --nav-bg: rgb(0 0 0 / 0.72);
+  --fade: #000;
+  --shadow: rgb(0 0 0 / 0.6);
+  --backdrop: rgb(0 0 0 / 0.6);
   --spring: cubic-bezier(0.2, 0.8, 0.2, 1);
   --glass-fill: rgb(255 255 255 / 0.08);
   --glass-edge: rgb(255 255 255 / 0.24);
+  --glass-tint: rgb(40 40 42 / 0.6);
   --glass-shine:
     inset 0 1px 0 rgb(255 255 255 / 0.3),
     inset 0 -1px 1px rgb(255 255 255 / 0.06);
+  color: var(--ink);
+  background: var(--background);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --background: #f2f2f7;
+    --surface: #fff;
+    --surface-raised: #ececf0;
+    --surface-pressed: #e1e1e6;
+    --surface-hover: #f7f7f9;
+    --card: #fff;
+    --card-edge: rgb(0 0 0 / 0.06);
+    --ink: #0b0b0c;
+    --muted: #5f5f66; /* 5.2:1 or better on every light surface */
+    --faint: #8a8a90;
+    --separator: #dcdce0;
+    --accent: #ff7a2b;
+    --accent-ink: #b83f00; /* orange text needs to be darker on white */
+    --accent-soft: rgb(255 122 43 / 0.14);
+    --success: #1f9d46;
+    --danger: #d70015;
+    --error-bg: #ffe9e7;
+    --error-ink: #a3140b;
+    --selected-bg: #0b0b0c;
+    --selected-ink: #fff;
+    --segment-on: #fff;
+    --nav-bg: rgb(242 242 247 / 0.82);
+    --fade: #f2f2f7;
+    --shadow: rgb(20 20 30 / 0.12);
+    --backdrop: rgb(20 20 30 / 0.35);
+    --glass-fill: rgb(255 255 255 / 0.72);
+    --glass-edge: rgb(0 0 0 / 0.08);
+    --glass-tint: rgb(255 255 255 / 0.82);
+    --glass-shine:
+      inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -1px 1px rgb(0 0 0 / 0.03);
+  }
 }
 /* Follow the iPhone's text size setting (Dynamic Type) where supported. */
 @supports (font: -apple-system-body) {
@@ -77,7 +132,7 @@ a:active,
 }
 button:disabled {
   cursor: default;
-  opacity: 0.4;
+  opacity: 0.45;
 }
 a {
   color: inherit;
@@ -101,7 +156,9 @@ h1 {
   line-height: 1.15;
   letter-spacing: -0.02em;
 }
-h1:focus {
+h1:focus,
+h2:focus,
+h3:focus {
   outline: none;
 }
 h2 {
@@ -127,6 +184,13 @@ img {
 .muted {
   color: var(--muted);
 }
+.accent-text {
+  color: var(--accent-ink);
+}
+.optional {
+  font-weight: 400;
+  color: var(--muted);
+}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -138,6 +202,8 @@ img {
   white-space: nowrap;
   border: 0;
 }
+
+/* Logo: a curb cut with a wheel at the foot of the ramp. */
 .curb-mark {
   display: block;
   width: 32px;
@@ -146,7 +212,9 @@ img {
   overflow: visible;
 }
 .curb-wheel {
-  fill: #fff;
+  color: var(--ink);
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 /* Buttons */
@@ -164,32 +232,39 @@ img {
   text-align: center;
 }
 .button-primary {
-  background: #fff;
-  color: #000;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    0 6px 18px rgb(255 122 43 / 0.25);
 }
 .button-secondary {
   background: var(--surface);
-  color: #fff;
+  color: var(--ink);
 }
 .button-primary .spinner {
-  border-color: #0003;
-  border-top-color: #000;
+  border-color: rgb(28 17 8 / 0.25);
+  border-top-color: var(--on-accent);
 }
 .full {
   width: 100%;
 }
-.danger-button {
-  background: var(--danger);
+.button-primary.danger-button {
+  background: var(--danger-fill);
   color: #fff;
+  box-shadow: none;
 }
 .text-button {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: 0.9375rem;
   font-weight: 500;
+}
+.danger-text {
+  color: var(--danger);
 }
 .icon-button {
   width: 44px;
@@ -199,6 +274,14 @@ img {
   border-radius: 999px;
   background: var(--surface);
   color: var(--muted);
+}
+.pill-button {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  font-size: 0.9375rem;
+  font-weight: 600;
 }
 
 /* Liquid glass */
@@ -218,27 +301,25 @@ img {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: #fff;
-}
-.glass-circle.large {
-  width: 52px;
-  height: 52px;
+  color: var(--ink);
 }
 .glass-button {
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 16px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   border-radius: 999px;
   font-size: 0.875rem;
   font-weight: 600;
-  background: rgb(40 40 42 / 0.55);
+  background: var(--glass-tint);
 }
+/* Sits on photos, so it keeps its own dark tint in both themes. */
 .glass-tag {
-  padding: 4px 9px;
+  padding: 5px 10px;
   border-radius: 999px;
-  background: rgb(40 40 42 / 0.7);
+  background: rgb(28 28 30 / 0.72);
+  color: #fff;
   border: 0.5px solid rgb(255 255 255 / 0.18);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -252,9 +333,32 @@ img {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.12);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+/* Status: always written out; the dot only repeats it in color. */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--faint);
+}
+.status-sent .status-dot {
+  background: var(--accent);
+}
+.status-resolved .status-dot {
+  background: var(--success);
 }
 
 /* Photos come from the device's own camera/library chooser. */
@@ -285,6 +389,7 @@ img {
 .grouped {
   border-radius: 18px;
   background: var(--surface);
+  border: 0.5px solid var(--card-edge);
   overflow: hidden;
 }
 .group-footer {
@@ -298,10 +403,18 @@ img {
   color: var(--muted);
 }
 .group-footer button {
-  min-height: 32px;
-  color: #c7c7cc;
+  min-height: 44px;
+  color: var(--ink);
+  font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+.field-error {
+  margin: 8px 16px 0;
+  color: var(--error-ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
 }
 .thumb {
   flex: none;
@@ -335,11 +448,15 @@ img {
 .row-copy b {
   font-size: 1rem;
 }
+/* Two lines before truncating, so long place names stay readable at
+   large text sizes. */
 .row-copy small {
   color: var(--muted);
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 .chevron {
   color: var(--faint);
@@ -356,8 +473,8 @@ img {
   margin-top: 12px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgb(255 69 58 / 0.14);
-  color: #ff9f99;
+  background: var(--error-bg);
+  color: var(--error-ink);
   font-size: 0.875rem;
   line-height: 1.45;
 }
@@ -365,8 +482,8 @@ img {
   display: inline-block;
   width: 18px;
   height: 18px;
-  border: 2px solid #ffffff33;
-  border-top-color: #fff;
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   flex-shrink: 0;
@@ -376,7 +493,9 @@ img {
   color: var(--muted);
   font-size: 0.8125rem;
 }
-.toast {
+
+/* Messages: an always-present live region; the toast appears inside it. */
+.toast-region {
   position: fixed;
   z-index: 100;
   left: 50%;
@@ -384,33 +503,50 @@ img {
   transform: translateX(-50%);
   width: max-content;
   max-width: min(calc(100vw - 32px), 460px);
+  pointer-events: none;
+}
+.toast {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 12px 18px;
   border-radius: 999px;
-  background: rgb(44 44 46 / 0.75);
+  background: var(--glass-tint);
   border: 0.5px solid var(--glass-edge);
   box-shadow:
     var(--glass-shine),
-    0 12px 32px #0008;
+    0 12px 32px var(--shadow);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.35;
   animation: toast-in 0.45s var(--spring) both;
+  pointer-events: auto;
 }
-.toast svg {
+.toast-sticky {
+  padding: 8px 8px 8px 18px;
+  border-radius: 22px;
+}
+.toast > svg {
   color: var(--accent);
+}
+.toast-close {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--muted);
 }
 .skip-link {
   position: fixed;
   left: 16px;
   top: -100px;
   z-index: 120;
-  background: #fff;
-  color: #000;
+  background: var(--selected-bg);
+  color: var(--selected-ink);
   padding: 14px;
   border-radius: 12px;
 }
@@ -420,38 +556,37 @@ img {
 
 /* Sheets */
 .sheet {
-  border: 0.5px solid rgb(255 255 255 / 0.12);
-  background: #1c1c1e;
+  border: 0.5px solid var(--card-edge);
+  background: var(--surface);
   color: var(--ink);
   padding: 0;
   width: min(520px, calc(100vw - 24px));
   max-height: 88dvh;
   border-radius: 28px;
-  box-shadow: 0 30px 90px #000a;
+  box-shadow: 0 30px 90px var(--shadow);
 }
 .sheet[open] {
   animation: sheet-in 0.45s var(--spring) both;
 }
 .sheet::backdrop {
-  background: #0009;
+  background: var(--backdrop);
   backdrop-filter: blur(8px);
 }
 .sheet-inner {
-  padding: 22px 20px 24px;
+  padding: 18px 20px 24px;
 }
 .sheet-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 .sheet-heading h2 {
   font-size: 1.25rem;
 }
 .sheet .icon-button {
-  width: 32px;
-  height: 32px;
+  margin-right: -6px;
   background: var(--surface-raised);
 }
 .modal-description {
@@ -481,6 +616,7 @@ img {
   border: 0;
   border-radius: 14px;
   background: var(--surface-raised);
+  color: var(--ink);
   font-size: 1.0625rem;
   font-weight: 400;
 }
@@ -491,10 +627,8 @@ img {
 }
 input::placeholder,
 textarea::placeholder {
-  color: #8e8e93;
-}
-.optional {
-  font-weight: 400;
+  color: var(--muted);
+  opacity: 1;
 }
 .remove-contact {
   width: 100%;
@@ -510,6 +644,9 @@ textarea::placeholder {
 .confirmation-actions button {
   padding: 0 12px;
   font-size: 0.9375rem;
+}
+.sheet .button-secondary {
+  background: var(--surface-raised);
 }
 
 /* Representative and area lookup */
@@ -546,11 +683,12 @@ textarea::placeholder {
 .verified-mark {
   width: 26px;
   height: 26px;
+  flex: none;
   display: grid;
   place-items: center;
   border-radius: 999px;
   background: var(--accent);
-  color: #000;
+  color: var(--on-accent);
 }
 .area-methods {
   display: flex;
@@ -577,18 +715,21 @@ textarea::placeholder {
 .area-method small {
   color: var(--muted);
 }
+.area-method > svg {
+  color: var(--faint);
+}
 .area-method-icon {
   width: 36px;
   height: 36px;
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: var(--surface-pressed);
-  color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
 .area-location .area-method-icon {
   background: var(--accent);
-  color: #000;
+  color: var(--on-accent);
 }
 .area-town-link {
   align-self: center;
@@ -611,6 +752,7 @@ textarea::placeholder {
   align-items: center;
   gap: 8px;
   color: var(--muted);
+  font-size: 0.9375rem;
 }
 .area-result small {
   color: var(--muted);
