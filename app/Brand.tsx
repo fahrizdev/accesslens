@@ -1,14 +1,101 @@
+import { useEffect, useState } from "react";
+import { Camera, CircleCheck, FileText, Lock } from "lucide-react";
+
+// Eight rounded spokes, tilted slightly: a friendly spark that doubles as a wheel.
 export function CurbMark({ className = "" }: { className?: string }) {
   return (
     <svg
       className={`curb-mark ${className}`}
-      viewBox="0 0 80 80"
+      viewBox="0 0 64 64"
       aria-hidden="true"
     >
-      <path
-        d="M32.15 27.76Q32.06 27.88 31.77 25.49L30.28 13.39Q29.99 11 32.37 10.71L40.31 9.74Q42.7 9.44 42.99 11.83L44.48 23.93Q44.77 26.32 45.43 26.55L46.31 26.86Q46.97 27.09 48.96 25.75L57.42 20.05Q59.41 18.71 60.75 20.69L65.67 27.99Q67.02 29.98 65.03 31.32L56.57 37.03Q54.58 38.37 54.55 38.99L54.51 39.83Q54.48 40.45 56.6 41.58L68.26 47.78Q70.38 48.9 69.25 51.02L65.49 58.09Q64.37 60.2 62.25 59.08L50.59 52.88Q48.47 51.75 48.17 52.05L47.76 52.45Q47.45 52.75 47.53 55.15L47.92 66.34Q48.01 68.74 45.61 68.82L36.41 69.14Q34.02 69.23 33.93 66.83L33.54 55.63Q33.46 53.24 33.04 52.87L32.47 52.38Q32.05 52.01 29.99 53.25L20.39 59.01Q18.34 60.25 17.1 58.19L13.19 51.68Q11.95 49.62 14.01 48.39L23.61 42.62Q25.66 41.38 25.57 40.71L25.45 39.81Q25.35 39.13 23.3 37.9L15.41 33.16Q13.35 31.92 14.59 29.87L19.12 22.32Q20.36 20.27 22.42 21.5L30.3 26.24Q32.36 27.48 32.27 27.6L32.15 27.76Z"
-        fill="currentColor"
-      />
+      <g
+        stroke="currentColor"
+        strokeWidth="8"
+        strokeLinecap="round"
+        fill="none"
+        transform="rotate(12 32 32)"
+      >
+        <path d="M32 22V6M32 42V58M22 32H6M42 32H58" />
+        <path d="M39.1 24.9 45.4 18.6M24.9 24.9 18.6 18.6M39.1 39.1 45.4 45.4M24.9 39.1 18.6 45.4" />
+      </g>
     </svg>
+  );
+}
+
+const reducedMotion = () =>
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+// The logo springs in, holds for a beat, then zooms through into the app.
+export function Launch() {
+  const [phase, setPhase] = useState<"in" | "out" | "done">("in");
+  useEffect(() => {
+    const quick = reducedMotion();
+    const leave = window.setTimeout(() => setPhase("out"), quick ? 300 : 1000);
+    const done = window.setTimeout(() => setPhase("done"), quick ? 600 : 1450);
+    return () => {
+      clearTimeout(leave);
+      clearTimeout(done);
+    };
+  }, []);
+  if (phase === "done") return null;
+  return (
+    <div className={`launch launch-${phase}`} aria-hidden="true">
+      <CurbMark />
+    </div>
+  );
+}
+
+const welcomeFeatures = [
+  {
+    icon: Camera,
+    title: "Snap a barrier",
+    text: "A blocked ramp, a stairs-only entrance or a broken path. One photo is enough.",
+  },
+  {
+    icon: FileText,
+    title: "Get a ready-to-send report",
+    text: "Curb writes it up and finds your local representative.",
+  },
+  {
+    icon: CircleCheck,
+    title: "See it through",
+    text: "Track every report from sent to resolved.",
+  },
+];
+
+export function Welcome({ onContinue }: { onContinue: () => void }) {
+  return (
+    <main className="welcome">
+      <div className="welcome-top enter">
+        <span className="app-icon">
+          <CurbMark />
+        </span>
+        <h1>Welcome to Curb</h1>
+      </div>
+      <ul className="welcome-features">
+        {welcomeFeatures.map(({ icon: Icon, title, text }, index) => (
+          <li
+            key={title}
+            className="enter"
+            style={{ animationDelay: `${150 + index * 100}ms` }}
+          >
+            <Icon size={32} strokeWidth={1.7} aria-hidden="true" />
+            <div>
+              <b>{title}</b>
+              <p>{text}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="welcome-bottom enter" style={{ animationDelay: "500ms" }}>
+        <p className="footnote">
+          <Lock size={13} aria-hidden="true" /> Your reports stay on this phone.
+        </p>
+        <button className="button-primary full" onClick={onContinue}>
+          Continue
+        </button>
+      </div>
+    </main>
   );
 }

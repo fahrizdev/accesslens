@@ -5,14 +5,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
-import {
-  ArrowLeft,
-  Camera,
-  Check,
-  FileText,
-  Home,
-  UserRound,
-} from "lucide-react";
+import { Camera, Check, FileText, Home, UserRound } from "lucide-react";
 import {
   createDraft,
   categories,
@@ -30,11 +23,12 @@ import {
 } from "./profile";
 
 import useReports from "./useReports";
-import { photoFile } from "./reportFiles";
+import { downloadPhoto, photoFile } from "./reportFiles";
 import {
   AREA_KEY,
   readArea,
   readPreference,
+  WELCOME_KEY,
   writePreference,
 } from "./preferences";
 import { lookupArea } from "./area";
@@ -42,7 +36,7 @@ import { preparePhoto as resizePhoto } from "./photos";
 import AreaPicker from "./components/AreaPicker";
 import Modal from "./components/Modal";
 import PhotoPicker from "./components/PhotoPicker";
-import { CurbMark } from "./Brand";
+import { Launch, Welcome } from "./Brand";
 import HomeDashboard from "./Home";
 import ReportDetails, {
   emptyReportForm,
@@ -64,6 +58,9 @@ export default function App() {
   );
   const [area, setArea] = useState<Area | null>(readArea);
   const [view, setView] = useState<View>("home");
+  const [welcomed, setWelcomed] = useState(
+    () => readPreference(WELCOME_KEY) === true,
+  );
   const { reports, loading, persist, remove, hasUnsaved, storageWarning } =
     useReports();
   const [draft, setDraft] = useState<ReportFormFields>(emptyReportForm);
@@ -380,45 +377,49 @@ export default function App() {
     } catch {
       // Some browsers expose canShare but throw for file attachments.
     }
+    setError("");
     if (!file || !attachmentsSupported) {
-      setError(
-        "This browser cannot share photo attachments directly. Copy the message and save the photo below, then attach it on the official contact page.",
-      );
-      sendPanel.current?.scrollIntoView({ behavior: "auto", block: "start" });
+      await copyAndSavePhoto(report, version);
       return;
     }
     setSharing(true);
-    setError("");
     try {
       await navigator.share({
         files: [file],
         title: `Curb: ${report.category}`,
         text: summary,
       });
+      if (version !== reportVersion.current) return;
+      if ((report.followUp || "not-sent") === "not-sent")
+        await updateFollowUp("sent");
       if (version === reportVersion.current)
-        setToast("Share sheet closed. Did you send the report?");
+        setToast("Report sent. Find it under Waiting in Reports.");
     } catch (e) {
       if (
         version === reportVersion.current &&
         !(e instanceof Error && e.name === "AbortError")
       )
-        setError(
-          "Sharing could not open. Try copying the message and saving the photo instead.",
-        );
+        await copyAndSavePhoto(report, version);
     } finally {
       setSharing(false);
     }
   }
-  async function copy() {
-    const version = reportVersion.current;
-    saveReview();
+  // Without a share sheet that carries photos, hand over both pieces instead.
+  async function copyAndSavePhoto(report: BarrierReport, version: number) {
+    if (report.image) downloadPhoto(report);
     try {
       await navigator.clipboard.writeText(summary);
       if (version === reportVersion.current)
-        setToast("Report copied. Attach the saved photo when you send it.");
+        setToast(
+          report.image
+            ? "Message copied and photo saved. Paste and attach them where you send it."
+            : "Message copied. Paste it where you send it.",
+        );
     } catch {
       if (version === reportVersion.current)
-        setError("Select the report text and copy it manually.");
+        setError(
+          "Select the message and copy it, then attach the saved photo where you send it.",
+        );
     }
   }
   async function removeCurrent() {
@@ -436,35 +437,30 @@ export default function App() {
     }
   }
   const isFlow = view === "details" || view === "review";
-  const flowStep = view === "details" ? 1 : 2;
+  const tabs = [
+    { view: "home", label: "Home", icon: Home },
+    { view: "reports", label: "Reports", icon: FileText },
+    { view: "settings", label: "You", icon: UserRound },
+  ] as const;
+  if (!welcomed)
+    return (
+      <>
+        <Welcome
+          onContinue={() => {
+            writePreference(WELCOME_KEY, true);
+            setWelcomed(true);
+          }}
+        />
+        <Launch />
+      </>
+    );
   return (
     <>
       <div className={`app-shell view-${view}`}>
         <a className="skip-link" href="#main">
           Skip to content
         </a>
-        <header className="topbar">
-          <button
-            className="brand"
-            aria-label="Curb home"
-            onClick={() => navigate("home")}
-          >
-            <CurbMark />
-            <span>Curb</span>
-          </button>
-          <button
-            className="profile-button icon-button"
-            aria-label="Profile"
-            aria-current={view === "settings" ? "page" : undefined}
-            onClick={() => navigate("settings")}
-          >
-            <UserRound size={21} />
-          </button>
-        </header>
-        <main
-          id="main"
-          className={`main-content ${isFlow ? "flow-content" : ""}`}
-        >
+        <main id="main" className="main-content" key={view}>
           {view === "home" && (
             <HomeDashboard
               reports={reports}
@@ -473,34 +469,10 @@ export default function App() {
               error={error}
               headingRef={heading}
               onReport={newReport}
-              onReports={() => setView("reports")}
+              onReports={() => navigate("reports")}
+              onProfile={() => navigate("settings")}
               onOpenReport={openReport}
             />
-          )}
-
-          {isFlow && (
-            <div className="flow-top">
-              <button
-                className="back-button"
-                onClick={() =>
-                  view === "details" ? navigate("home") : setView("details")
-                }
-              >
-                <ArrowLeft size={16} />
-                {view === "details" ? "Home" : "Back"}
-              </button>
-              <ol className="flow-steps" aria-label="Report progress">
-                {["Photo", "Details", "Review"].map((label, index) => (
-                  <li
-                    key={label}
-                    className={index <= flowStep ? "active" : ""}
-                    aria-current={index === flowStep ? "step" : undefined}
-                  >
-                    {label}
-                  </li>
-                ))}
-              </ol>
-            </div>
           )}
 
           {view === "details" && (
@@ -512,6 +484,8 @@ export default function App() {
               saving={saving}
               error={error}
               heading={heading}
+              editing={!!current}
+              onCancel={() => navigate(current ? "reports" : "home")}
               onChange={updateDraft}
               onPhoto={changePhoto}
               onArea={() => setAreaModal("report")}
@@ -527,17 +501,18 @@ export default function App() {
               summary={summary}
               reportArea={reportArea}
               sharing={sharing}
-              processing={processing}
               error={error}
               heading={heading}
               sendPanel={sendPanel}
               setSummary={setSummary}
               saveReview={saveReview}
               chooseArea={() => setAreaModal("report")}
-              share={share}
-              copy={copy}
+              onBack={() => {
+                saveReview();
+                setView("details");
+              }}
+              send={share}
               updateFollowUp={updateFollowUp}
-              newReport={newReport}
               deleteCurrent={() => setConfirmation("report")}
             />
           )}
@@ -546,10 +521,8 @@ export default function App() {
             <ReportsView
               reports={reports}
               loading={loading}
-              processing={processing}
               error={error}
               heading={heading}
-              newReport={newReport}
               openReport={openReport}
             />
           )}
@@ -558,6 +531,7 @@ export default function App() {
             <SettingsView
               profile={profile}
               area={area}
+              reports={reports}
               heading={heading}
               onSignature={() => {
                 setError("");
@@ -574,38 +548,35 @@ export default function App() {
             </p>
           )}
         </main>
-        <nav className="app-dock" aria-label="App navigation">
-          <button
-            aria-current={view === "home" ? "page" : undefined}
-            onClick={() => navigate("home")}
-          >
-            <Home size={22} />
-            <span>Home</span>
-          </button>
-          {isFlow ? (
-            <button className="dock-create" aria-current="page">
-              <Camera size={21} />
-              <span>New</span>
-            </button>
-          ) : (
+        {!isFlow && (
+          <div className="tab-dock">
+            <nav className="tab-bar glass" aria-label="App navigation">
+              {tabs.map(({ view: target, label, icon: Icon }) => (
+                <button
+                  key={target}
+                  aria-current={view === target ? "page" : undefined}
+                  onClick={() => navigate(target)}
+                >
+                  <Icon
+                    size={24}
+                    strokeWidth={view === target ? 2.2 : 1.8}
+                    fill={view === target ? "currentColor" : "none"}
+                    fillOpacity={view === target ? 0.2 : 0}
+                  />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
             <PhotoPicker
-              className="dock-create"
+              className="tab-camera glass"
               label="New report: take or choose a photo"
               disabled={processing}
               onPick={newReport}
             >
-              <Camera size={21} />
-              <span aria-hidden="true">New</span>
+              {processing ? <span className="spinner" /> : <Camera size={25} />}
             </PhotoPicker>
-          )}
-          <button
-            aria-current={view === "reports" ? "page" : undefined}
-            onClick={() => navigate("reports")}
-          >
-            <FileText size={20} />
-            <span>Reports</span>
-          </button>
-        </nav>
+          </div>
+        )}
         {toast && (
           <div className="toast" role="status">
             <Check size={16} />
@@ -783,6 +754,7 @@ export default function App() {
           </Modal>
         )}
       </div>
+      <Launch />
     </>
   );
 }

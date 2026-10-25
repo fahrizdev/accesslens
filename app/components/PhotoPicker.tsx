@@ -6,12 +6,15 @@ export default function PhotoPicker({
   className = "",
   label,
   disabled = false,
+  camera = false,
   onPick,
   children,
 }: {
   className?: string;
   label: string;
   disabled?: boolean;
+  // Go straight to the rear camera on phones instead of offering the library.
+  camera?: boolean;
   onPick: (event: ChangeEvent<HTMLInputElement>) => void;
   children: ReactNode;
 }) {
@@ -21,6 +24,7 @@ export default function PhotoPicker({
       <input
         type="file"
         accept="image/*"
+        capture={camera ? "environment" : undefined}
         aria-label={label}
         disabled={disabled}
         onChange={onPick}

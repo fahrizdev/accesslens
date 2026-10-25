@@ -1,15 +1,15 @@
 import type { ChangeEvent, FormEvent, RefObject } from "react";
 import {
-  ArrowRight,
-  Camera,
-  Check,
+  AlignLeft,
   ChevronRight,
-  Crosshair,
+  Landmark,
   MapPin,
+  Navigation,
+  RotateCcw,
+  Tag,
 } from "lucide-react";
 import { categories } from "../reports";
 import type { Area } from "../area";
-import Representative from "../components/Representative";
 import PhotoPicker from "../components/PhotoPicker";
 
 export type ReportFormFields = {
@@ -38,6 +38,8 @@ type Props = {
   saving: boolean;
   error: string;
   heading: RefObject<HTMLHeadingElement | null>;
+  editing: boolean;
+  onCancel: () => void;
   onChange: (patch: Partial<ReportFormFields>) => void;
   onPhoto: (event: ChangeEvent<HTMLInputElement>) => void;
   onArea: () => void;
@@ -54,6 +56,8 @@ export default function ReportDetails({
   saving,
   error,
   heading,
+  editing,
+  onCancel,
   onChange,
   onPhoto,
   onArea,
@@ -62,115 +66,144 @@ export default function ReportDetails({
   generate,
 }: Props) {
   return (
-    <section className="details-view">
-      <div className="page-heading">
+    <section className="flow-view">
+      <header className="nav-bar">
+        <button className="nav-text" type="button" onClick={onCancel}>
+          Cancel
+        </button>
         <h1 ref={heading} tabIndex={-1}>
-          Details
+          {editing ? "Edit Report" : "New Report"}
         </h1>
-      </div>
-      <form
-        onSubmit={(event) => void generate(event)}
-        className="details-layout"
-      >
-        <div className="details-photo-panel">
-          <img src={image} alt="The barrier you’re reporting" />
-          <PhotoPicker
-            className="photo-edit"
-            label="Change photo"
-            disabled={processing}
-            onPick={onPhoto}
+        <span />
+      </header>
+      <form onSubmit={(event) => void generate(event)} className="flow-form">
+        <div className="flow-body">
+          <div className="photo-frame enter">
+            <img src={image} alt="The barrier you’re reporting" />
+            <PhotoPicker
+              className="glass-button"
+              label="Retake photo"
+              disabled={processing}
+              onPick={onPhoto}
+            >
+              <RotateCcw size={15} /> {processing ? "Preparing…" : "Retake"}
+            </PhotoPicker>
+          </div>
+
+          <fieldset
+            className="chip-field enter"
+            style={{ animationDelay: "60ms" }}
           >
-            <Camera size={14} /> {processing ? "Preparing…" : "Change photo"}
-          </PhotoPicker>
-        </div>
-        <div className="details-fields">
-          <fieldset className="category-field">
-            <legend>Barrier type</legend>
-            <div className="category-options">
+            <legend>Barrier</legend>
+            <div className="chip-row">
               {categories.map((item) => (
                 <button
                   key={item}
                   type="button"
+                  className="chip"
                   aria-pressed={category === item}
-                  className={category === item ? "chosen" : ""}
                   onClick={() => onChange({ category: item })}
                 >
                   {item}
-                  {category === item && <Check size={13} />}
                 </button>
               ))}
             </div>
           </fieldset>
-          {category === "Other" && (
-            <label className="field-label">
-              Short name <span className="optional">optional</span>
-              <input
-                placeholder="What kind of barrier did you notice?"
-                value={customCategory}
-                onChange={(event) =>
-                  onChange({ customCategory: event.target.value })
-                }
-                maxLength={90}
-              />
-            </label>
-          )}
-          <div className="field-heading">
-            <label htmlFor="report-place">Location</label>
-            <button
-              type="button"
-              className="text-button"
-              onClick={addLocation}
-              disabled={locating}
-            >
-              <Crosshair size={13} />
-              {locating ? "Finding location…" : "Use GPS"}
-            </button>
-          </div>
-          <input
-            id="report-place"
-            className="standalone-input"
-            placeholder="Building, entrance, or intersection"
-            value={place}
-            onChange={(event) => onChange({ place: event.target.value })}
-            required
-            maxLength={200}
-          />
-          {coordinates && (
-            <p className="gps-caption">
-              <MapPin size={11} /> {coordinates}{" "}
-              <button type="button" onClick={onRemovePin}>
-                Remove pin
+
+          <div className="enter" style={{ animationDelay: "120ms" }}>
+            <div className="grouped form-group">
+              {category === "Other" && (
+                <div className="form-row">
+                  <Tag size={20} className="row-icon" />
+                  <label className="sr-only" htmlFor="report-custom">
+                    Barrier name
+                  </label>
+                  <input
+                    id="report-custom"
+                    placeholder="Name the barrier (optional)"
+                    value={customCategory}
+                    onChange={(event) =>
+                      onChange({ customCategory: event.target.value })
+                    }
+                    maxLength={90}
+                  />
+                </div>
+              )}
+              <div className="form-row">
+                <MapPin size={20} className="row-icon accent" />
+                <label className="sr-only" htmlFor="report-place">
+                  Location
+                </label>
+                <input
+                  id="report-place"
+                  placeholder="Building, entrance or intersection"
+                  value={place}
+                  onChange={(event) => onChange({ place: event.target.value })}
+                  required
+                  maxLength={200}
+                />
+                <button
+                  type="button"
+                  className="row-action"
+                  aria-label={
+                    locating ? "Finding your location" : "Use my location"
+                  }
+                  onClick={addLocation}
+                  disabled={locating}
+                >
+                  {locating ? (
+                    <span className="spinner" />
+                  ) : (
+                    <Navigation size={17} />
+                  )}
+                </button>
+              </div>
+              <div className="form-row">
+                <AlignLeft size={20} className="row-icon" />
+                <label className="sr-only" htmlFor="report-note">
+                  Note
+                </label>
+                <textarea
+                  id="report-note"
+                  rows={1}
+                  value={note}
+                  onChange={(event) => onChange({ note: event.target.value })}
+                  placeholder="Add a note (optional)"
+                  maxLength={800}
+                />
+              </div>
+              <button type="button" className="form-row" onClick={onArea}>
+                <Landmark size={20} className="row-icon" />
+                <span className="row-label">
+                  To{" "}
+                  <span className="muted">
+                    {reportArea?.representative || "Find your representative"}
+                  </span>
+                </span>
+                <ChevronRight size={16} className="chevron" />
               </button>
-            </p>
-          )}
-          <label className="field-label">
-            Notes <span className="optional">optional</span>
-            <textarea
-              value={note}
-              onChange={(event) => onChange({ note: event.target.value })}
-              placeholder="e.g. bins are blocking the ramp by the entrance"
-              rows={3}
-              maxLength={800}
-            />
-          </label>
-          <div className="recipient-inline">
-            <Representative area={reportArea} compact />
-            <button type="button" className="text-button" onClick={onArea}>
-              {reportArea?.representative ? "Change" : "Find"}
-              <ChevronRight size={13} />
-            </button>
+            </div>
+            {coordinates && (
+              <p className="group-footer">
+                GPS pin added.{" "}
+                <button type="button" onClick={onRemovePin}>
+                  Remove
+                </button>
+              </p>
+            )}
           </div>
           {error && (
             <p className="error" role="alert">
               {error}
             </p>
           )}
+        </div>
+        <div className="flow-footer">
           <button
             className="button-primary full"
             disabled={saving || locating || !category}
           >
-            {saving ? "Saving…" : "Review report"}
-            <ArrowRight size={16} />
+            {saving ? "Saving…" : "Write report"}
           </button>
         </div>
       </form>

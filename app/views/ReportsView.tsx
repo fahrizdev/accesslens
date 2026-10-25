@@ -1,39 +1,57 @@
-import type { ChangeEvent, RefObject } from "react";
-import { FileText, Plus } from "lucide-react";
+import { useState, type RefObject } from "react";
+import { ChevronRight } from "lucide-react";
 import { displayDate, reportStatusLabel, type BarrierReport } from "../reports";
-import PhotoPicker from "../components/PhotoPicker";
+import { ReportThumb } from "../Home";
+
+type Filter = "All" | "Drafts" | "Waiting" | "Resolved";
+const filters: Filter[] = ["All", "Drafts", "Waiting", "Resolved"];
+
+function reportGroup(report: BarrierReport): Filter {
+  if (report.followUp === "resolved") return "Resolved";
+  return report.status === "Draft" ? "Drafts" : "Waiting";
+}
+
 type Props = {
   reports: BarrierReport[];
   loading: boolean;
-  processing: boolean;
   error: string;
   heading: RefObject<HTMLHeadingElement | null>;
-  newReport: (event: ChangeEvent<HTMLInputElement>) => void;
   openReport: (report: BarrierReport) => void;
 };
 export default function ReportsView({
   reports,
   loading,
-  processing,
   error,
   heading,
-  newReport,
   openReport,
 }: Props) {
+  const [filter, setFilter] = useState<Filter>("All");
+  const visible =
+    filter === "All"
+      ? reports
+      : reports.filter((report) => reportGroup(report) === filter);
   return (
     <section className="reports-view">
-      <div className="page-heading">
+      <header className="large-title">
         <h1 ref={heading} tabIndex={-1}>
           Reports
         </h1>
-        <PhotoPicker
-          className="button-primary compact-button"
-          label="New report: take or choose a photo"
-          disabled={processing}
-          onPick={newReport}
-        >
-          <Plus size={15} /> {processing ? "Preparing…" : "New"}
-        </PhotoPicker>
+      </header>
+      <div
+        className="segmented enter"
+        role="group"
+        aria-label="Filter reports"
+        style={{ animationDelay: "50ms" }}
+      >
+        {filters.map((item) => (
+          <button
+            key={item}
+            aria-pressed={filter === item}
+            onClick={() => setFilter(item)}
+          >
+            {item}
+          </button>
+        ))}
       </div>
       {error && (
         <p className="error" role="alert">
@@ -41,34 +59,38 @@ export default function ReportsView({
         </p>
       )}
       {loading ? (
-        <div className="empty-state" role="status">
+        <p className="quiet-empty" role="status">
           <span className="spinner" /> Loading reports…
-        </div>
-      ) : !reports.length ? (
-        <p className="quiet-empty">Reports you make will appear here.</p>
+        </p>
+      ) : !visible.length ? (
+        <p className="quiet-empty">
+          {reports.length
+            ? "Nothing here yet."
+            : "Reports you make will appear here."}
+        </p>
       ) : (
-        <div className="report-grid">
-          {reports.map((report) => (
+        <div
+          className="grouped report-list enter"
+          style={{ animationDelay: "100ms" }}
+        >
+          {visible.map((report) => (
             <button
-              className="saved-report-card"
+              className="report-row"
               key={report.id}
               onClick={() => openReport(report)}
             >
-              <span className="saved-report-photo">
-                {report.image ? (
-                  <img src={report.image} alt="" />
-                ) : (
-                  <span className="no-photo">
-                    <FileText size={28} />
-                  </span>
-                )}
+              <span className="thumb">
+                <ReportThumb report={report} />
               </span>
-              <span className="saved-report-heading">
-                <b>{report.category}</b>
-                <small>{displayDate(report.created)}</small>
-              </span>
-              <span className="saved-report-status">
-                {reportStatusLabel(report)}
+              <span className="report-row-body">
+                <span className="row-copy">
+                  <b>{report.category}</b>
+                  <small>{report.place}</small>
+                  <small>
+                    {reportStatusLabel(report)} · {displayDate(report.created)}
+                  </small>
+                </span>
+                <ChevronRight size={16} className="chevron" />
               </span>
             </button>
           ))}

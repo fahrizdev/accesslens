@@ -1,6 +1,12 @@
 import type { ChangeEvent, RefObject } from "react";
-import { Camera, ChevronRight, FileText } from "lucide-react";
-import { displayDate, reportStatusLabel, type BarrierReport } from "./reports";
+import {
+  Camera,
+  ChevronRight,
+  FileText,
+  Images,
+  UserRound,
+} from "lucide-react";
+import { reportStatusLabel, type BarrierReport } from "./reports";
 import PhotoPicker from "./components/PhotoPicker";
 
 type Props = {
@@ -11,8 +17,19 @@ type Props = {
   headingRef: RefObject<HTMLHeadingElement | null>;
   onReport: (event: ChangeEvent<HTMLInputElement>) => void;
   onReports: () => void;
+  onProfile: () => void;
   onOpenReport: (report: BarrierReport) => void;
 };
+
+export function ReportThumb({ report }: { report: BarrierReport }) {
+  return report.image ? (
+    <img src={report.image} alt="" />
+  ) : (
+    <span className="no-photo">
+      <FileText size={20} />
+    </span>
+  );
+}
 
 export default function HomeDashboard({
   reports,
@@ -22,91 +39,124 @@ export default function HomeDashboard({
   headingRef,
   onReport,
   onReports,
+  onProfile,
   onOpenReport,
 }: Props) {
-  const firstRun = !loading && !reports.length;
+  const draft = reports.find((report) => report.status === "Draft");
+  const recent = reports.filter((report) => report !== draft).slice(0, 6);
   return (
-    <section className="dashboard">
-      <h1 className="sr-only" ref={headingRef} tabIndex={-1}>
-        Home
-      </h1>
-      <section className="home-hero" aria-labelledby="home-hero-heading">
-        <h2 id="home-hero-heading">Spot a barrier? Report it.</h2>
-        {firstRun && (
-          <p className="home-hero-copy">
-            Photograph a blocked ramp, a stairs-only entrance, or a broken path.
-            Curb turns it into a ready-to-send report and helps you find who to
-            send it to.
-          </p>
-        )}
-        <PhotoPicker
-          className="button-primary full"
-          label="New report: take or choose a photo"
-          disabled={processing}
-          onPick={onReport}
+    <section className="home">
+      <header className="large-title">
+        <h1 ref={headingRef} tabIndex={-1}>
+          Home
+        </h1>
+        <button
+          className="glass-circle"
+          aria-label="Your profile"
+          onClick={onProfile}
         >
-          {processing ? (
-            <>
-              <span className="spinner" /> Preparing photo…
-            </>
-          ) : (
-            <>
-              <Camera size={18} /> Take or choose a photo
-            </>
-          )}
-        </PhotoPicker>
+          <UserRound size={21} />
+        </button>
+      </header>
+
+      <section
+        className="hero-card enter"
+        aria-labelledby="hero-title"
+        style={{ animationDelay: "60ms" }}
+      >
+        <span className="eyebrow">New report</span>
+        <h2 id="hero-title">Spot a barrier?</h2>
+        <p>Take a photo. Curb writes the report and finds who to send it to.</p>
+        <div className="hero-actions">
+          <PhotoPicker
+            className="button-primary"
+            label="New report: take a photo"
+            camera
+            disabled={processing}
+            onPick={onReport}
+          >
+            {processing ? (
+              <>
+                <span className="spinner" /> Preparing photo…
+              </>
+            ) : (
+              <>
+                <Camera size={19} /> Take a photo
+              </>
+            )}
+          </PhotoPicker>
+          <PhotoPicker
+            className="glass-circle large"
+            label="New report: choose from library"
+            disabled={processing}
+            onPick={onReport}
+          >
+            <Images size={21} />
+          </PhotoPicker>
+        </div>
         {error && (
           <p className="error" role="alert">
             {error}
           </p>
         )}
       </section>
+
+      {draft && (
+        <section
+          className="home-section enter"
+          aria-labelledby="draft-title"
+          style={{ animationDelay: "120ms" }}
+        >
+          <h2 id="draft-title">Finish your draft</h2>
+          <button className="draft-card" onClick={() => onOpenReport(draft)}>
+            <span className="thumb">
+              <ReportThumb report={draft} />
+            </span>
+            <span className="row-copy">
+              <b>{draft.category}</b>
+              <small>{draft.place}</small>
+            </span>
+            <span className="pill-tag">Finish</span>
+          </button>
+        </section>
+      )}
+
       <section
-        className="dashboard-reports"
-        aria-labelledby="recent-reports-heading"
+        className="home-section enter"
+        aria-labelledby="recent-title"
+        style={{ animationDelay: "180ms" }}
       >
-        <div className="section-heading">
-          <h2 className="section-label" id="recent-reports-heading">
-            Recent reports
-          </h2>
-          {reports.length > 3 && (
-            <button className="text-button" onClick={onReports}>
-              See all
-            </button>
-          )}
-        </div>
+        {recent.length > 0 ? (
+          <button className="section-link" onClick={onReports}>
+            <h2 id="recent-title">Recent</h2>
+            <ChevronRight size={20} />
+          </button>
+        ) : (
+          <h2 id="recent-title">Recent</h2>
+        )}
         {loading ? (
-          <div className="empty-state" role="status">
+          <p className="quiet-empty" role="status">
             <span className="spinner" /> Loading reports…
-          </div>
-        ) : reports.length ? (
-          <div className="dashboard-report-list">
-            {reports.slice(0, 3).map((report) => (
+          </p>
+        ) : recent.length ? (
+          <div className="shelf">
+            {recent.map((report) => (
               <button
-                className="dashboard-report"
+                className="shelf-card"
                 key={report.id}
                 onClick={() => onOpenReport(report)}
               >
-                {report.image ? (
-                  <img src={report.image} alt="" />
-                ) : (
-                  <span className="no-photo">
-                    <FileText size={20} />
-                  </span>
-                )}
-                <span className="report-row-copy">
-                  <b>{report.category}</b>
-                  <small>{report.place}</small>
-                  <span className="report-row-meta">
-                    {displayDate(report.created)} · {reportStatusLabel(report)}
-                  </span>
+                <span className="shelf-photo">
+                  <ReportThumb report={report} />
+                  <span className="glass-tag">{reportStatusLabel(report)}</span>
                 </span>
-                <ChevronRight size={16} />
+                <b>{report.category}</b>
+                <small>{report.place}</small>
               </button>
             ))}
           </div>
         ) : (
-          <p className="quiet-empty">Reports you make will appear here.</p>
+          <p className="quiet-empty">Reports you send will show up here.</p>
         )}
       </section>
     </section>

@@ -8,15 +8,18 @@
   }
 }
 @media (forced-colors: active) {
-  .home-hero,
-  .app-dock,
-  .category-options button,
+  .hero-card,
+  .tab-bar,
+  .tab-camera,
+  .chip,
+  .grouped,
   .button-primary,
   .button-secondary {
     border: 1px solid ButtonText;
   }
-  .category-options .chosen,
-  .app-dock [aria-current] {
+  .chip[aria-pressed="true"],
+  .segmented [aria-pressed="true"],
+  .tab-bar [aria-current] {
     outline: 2px solid Highlight;
   }
 }
@@ -26,36 +29,24 @@
     background: white;
     color: black;
   }
-  .topbar,
-  .app-dock,
-  .flow-top,
-  .send-panel,
-  .toast {
+  .tab-dock,
+  .nav-bar,
+  .flow-footer,
+  .toast,
+  .launch {
     display: none !important;
   }
   .app-shell,
   .main-content,
-  .report-paper {
+  .grouped {
     background: white;
     color: black;
   }
   .main-content {
     padding: 0;
   }
-  .review-layout {
-    display: block;
-  }
-  .report-paper {
-    border: 0;
-  }
-  .summary-editor {
-    border: 0;
-    background: white;
+  .compose textarea {
     color: black;
     min-height: 500px;
-  }
-  .review-photo {
-    object-fit: contain;
-    height: 240px;
   }
 }
