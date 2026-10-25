@@ -2,6 +2,7 @@ import { useState, type RefObject } from "react";
 import { ChevronRight } from "lucide-react";
 import { displayDate, reportStatusLabel, type BarrierReport } from "../reports";
 import { ReportThumb } from "../Home";
+import { CurbMark } from "../Brand";
 
 type Filter = "All" | "Drafts" | "Waiting" | "Resolved";
 const filters: Filter[] = ["All", "Drafts", "Waiting", "Resolved"];
@@ -62,12 +63,14 @@ export default function ReportsView({
         <p className="quiet-empty" role="status">
           <span className="spinner" /> Loading reports…
         </p>
+      ) : !reports.length ? (
+        <div className="empty-state enter">
+          <CurbMark className="rolling" />
+          <b>No reports yet</b>
+          <p>Tap the camera below when you spot a barrier.</p>
+        </div>
       ) : !visible.length ? (
-        <p className="quiet-empty">
-          {reports.length
-            ? "Nothing here yet."
-            : "Reports you make will appear here."}
-        </p>
+        <p className="quiet-empty">Nothing here yet.</p>
       ) : (
         <div
           className="grouped report-list enter"

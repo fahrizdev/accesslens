@@ -24,42 +24,80 @@
 }
 
 /* Home */
-.hero-card {
-  padding: 22px;
+.first-run,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 22px 24px;
   border-radius: 26px;
   background: #141416;
   border: 0.5px solid rgb(255 255 255 / 0.12);
+  text-align: center;
 }
-.eyebrow {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--accent);
+.first-run .curb-mark,
+.empty-state .curb-mark {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 4px;
 }
-.hero-card h2 {
-  font-size: 1.875rem;
-  line-height: 1.1;
+.first-run h2 {
+  font-size: 1.75rem;
   letter-spacing: -0.02em;
 }
-.hero-card > p {
-  margin-top: 8px;
-  max-width: 30em;
-  font-size: 1rem;
-  line-height: 1.4;
+.first-run p,
+.empty-state p {
+  max-width: 26em;
   color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.45;
 }
-.hero-actions {
+.first-run .button-primary {
+  margin-top: 12px;
+  align-self: stretch;
+}
+.empty-state {
+  margin-top: 8px;
+  background: transparent;
+  border: 0;
+}
+.empty-state b {
+  font-size: 1.0625rem;
+}
+.rep-card {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 14px;
+  padding: 14px 14px 14px 16px;
+  border-radius: 20px;
+  background: #141416;
+  border: 0.5px solid rgb(255 255 255 / 0.12);
+  text-align: left;
 }
-.hero-actions .button-primary {
-  flex: 1;
+.rep-card .row-copy b {
+  font-size: 1.0625rem;
+}
+.rep-icon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgb(255 138 61 / 0.14);
+  color: var(--accent);
+}
+.rep-card-empty .row-copy small {
+  color: var(--accent);
 }
 .home-section {
-  margin-top: 28px;
+  margin-top: 24px;
+}
+.large-title + .home-section,
+.first-run + .home-section {
+  margin-top: 12px;
 }
 .home-section h2 {
   margin: 0 4px 10px;
@@ -396,11 +434,24 @@
   border-bottom: 0.5px solid var(--separator);
   font-size: 1rem;
 }
-.compose-to button {
-  flex: 1;
-  min-height: 44px;
+.compose-to {
+  width: 100%;
   text-align: left;
+}
+.compose-recipient {
+  flex: 1;
+  min-width: 0;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.needs-recipient .compose-recipient {
+  color: var(--accent);
+}
+.compose-to:active {
+  transform: none;
+  background: var(--surface-raised);
 }
 .compose textarea {
   display: block;
@@ -451,6 +502,12 @@
   font-size: 0.9375rem;
   color: var(--muted);
 }
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+}
 .status-line button {
   min-height: 44px;
   color: var(--accent);
@@ -461,6 +518,36 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
+}
+.sent-check {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px;
+  border-radius: 24px;
+  background: var(--surface);
+  text-align: center;
+  animation: enter 0.5s var(--spring) both;
+}
+.sent-check b {
+  font-size: 1.0625rem;
+}
+.sent-check p {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.sent-check-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.sent-check-actions button {
+  padding: 0 12px;
+}
+.sent-check .button-secondary {
+  background: var(--surface-raised);
 }
 .text-link {
   min-height: 44px;
@@ -580,11 +667,13 @@
 }
 .tab-bar,
 .tab-camera {
-  background: linear-gradient(
-    to bottom,
-    rgb(255 255 255 / 0.14),
-    rgb(255 255 255 / 0.05)
-  );
+  background:
+    radial-gradient(
+      120% 140% at 50% -30%,
+      rgb(255 255 255 / 0.2),
+      transparent 55%
+    ),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.04));
   box-shadow:
     var(--glass-shine),
     0 12px 32px #0009;
@@ -604,7 +693,7 @@
   justify-content: center;
   gap: 2px;
   border-radius: 999px;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 .tab-bar button[aria-current] {
@@ -634,6 +723,32 @@
   transition:
     opacity 0.5s ease,
     transform 0.6s var(--spring);
+}
+.welcome-back {
+  align-self: flex-start;
+  margin: -40px 0 16px -8px;
+}
+.welcome-symbol {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: rgb(255 138 61 / 0.14);
+  color: var(--accent);
+}
+.welcome-lede {
+  max-width: 24em;
+  margin-top: -10px;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.welcome-area {
+  margin-top: 32px;
+}
+.welcome-area .area-method {
+  background: var(--surface);
 }
 .welcome-top {
   display: flex;

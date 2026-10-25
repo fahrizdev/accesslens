@@ -1,12 +1,16 @@
 import type { ChangeEvent, RefObject } from "react";
 import {
+  ArrowUpRight,
   Camera,
   ChevronRight,
   FileText,
-  Images,
+  Landmark,
   UserRound,
 } from "lucide-react";
 import { reportStatusLabel, type BarrierReport } from "./reports";
+import { officialContactUrl, type Area } from "./area";
+import { greetingFor } from "./greeting";
+import { CurbMark } from "./Brand";
 import PhotoPicker from "./components/PhotoPicker";
 
 type Props = {
@@ -14,10 +18,12 @@ type Props = {
   loading: boolean;
   processing: boolean;
   error: string;
+  area: Area | null;
   headingRef: RefObject<HTMLHeadingElement | null>;
   onReport: (event: ChangeEvent<HTMLInputElement>) => void;
   onReports: () => void;
   onProfile: () => void;
+  onArea: () => void;
   onOpenReport: (report: BarrierReport) => void;
 };
 
@@ -31,24 +37,70 @@ export function ReportThumb({ report }: { report: BarrierReport }) {
   );
 }
 
+function RepresentativeCard({
+  area,
+  onArea,
+}: {
+  area: Area | null;
+  onArea: () => void;
+}) {
+  if (!area?.representative)
+    return (
+      <button className="rep-card rep-card-empty" onClick={onArea}>
+        <span className="rep-icon">
+          <Landmark size={22} />
+        </span>
+        <span className="row-copy">
+          <b>Who gets your reports?</b>
+          <small>Find your representative</small>
+        </span>
+        <ChevronRight size={18} className="chevron" />
+      </button>
+    );
+  return (
+    <div className="rep-card">
+      <span className="rep-icon">
+        <Landmark size={22} />
+      </span>
+      <span className="row-copy">
+        <small>Your reports go to</small>
+        <b>{area.representative}</b>
+        {area.district && <small>{area.district}</small>}
+      </span>
+      <a
+        className="glass-circle"
+        href={officialContactUrl(area.contactUrl)}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`${area.representative}’s official page`}
+      >
+        <ArrowUpRight size={19} />
+      </a>
+    </div>
+  );
+}
+
 export default function HomeDashboard({
   reports,
   loading,
   processing,
   error,
+  area,
   headingRef,
   onReport,
   onReports,
   onProfile,
+  onArea,
   onOpenReport,
 }: Props) {
   const draft = reports.find((report) => report.status === "Draft");
-  const recent = reports.filter((report) => report !== draft).slice(0, 6);
+  const recent = reports.filter((report) => report !== draft).slice(0, 8);
+  const firstRun = !loading && !reports.length;
   return (
     <section className="home">
       <header className="large-title">
         <h1 ref={headingRef} tabIndex={-1}>
-          Home
+          {greetingFor(new Date()).text}
         </h1>
         <button
           className="glass-circle"
@@ -59,18 +111,23 @@ export default function HomeDashboard({
         </button>
       </header>
 
-      <section
-        className="hero-card enter"
-        aria-labelledby="hero-title"
-        style={{ animationDelay: "60ms" }}
-      >
-        <span className="eyebrow">New report</span>
-        <h2 id="hero-title">Spot a barrier?</h2>
-        <p>Take a photo. Curb writes the report and finds who to send it to.</p>
-        <div className="hero-actions">
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {firstRun && (
+        <section className="first-run enter" aria-labelledby="first-title">
+          <CurbMark className="rolling" />
+          <h2 id="first-title">Spot a barrier?</h2>
+          <p>
+            Take a photo and Curb writes the report for you, ready to send to
+            your representative.
+          </p>
           <PhotoPicker
             className="button-primary"
-            label="New report: take a photo"
+            label="Take your first photo"
             camera
             disabled={processing}
             onPick={onReport}
@@ -85,28 +142,15 @@ export default function HomeDashboard({
               </>
             )}
           </PhotoPicker>
-          <PhotoPicker
-            className="glass-circle large"
-            label="New report: choose from library"
-            disabled={processing}
-            onPick={onReport}
-          >
-            <Images size={21} />
-          </PhotoPicker>
-        </div>
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-      </section>
+        </section>
+      )}
+
+      <div className="home-section enter" style={{ animationDelay: "80ms" }}>
+        <RepresentativeCard area={area} onArea={onArea} />
+      </div>
 
       {draft && (
-        <section
-          className="home-section enter"
-          aria-labelledby="draft-title"
-          style={{ animationDelay: "120ms" }}
-        >
+        <section className="home-section" aria-labelledby="draft-title">
           <h2 id="draft-title">Finish your draft</h2>
           <button className="draft-card" onClick={() => onOpenReport(draft)}>
             <span className="thumb">
@@ -121,24 +165,18 @@ export default function HomeDashboard({
         </section>
       )}
 
-      <section
-        className="home-section enter"
-        aria-labelledby="recent-title"
-        style={{ animationDelay: "180ms" }}
-      >
-        {recent.length > 0 ? (
+      {loading && (
+        <p className="quiet-empty" role="status">
+          <span className="spinner" /> Loading reports…
+        </p>
+      )}
+
+      {recent.length > 0 && (
+        <section className="home-section" aria-labelledby="recent-title">
           <button className="section-link" onClick={onReports}>
             <h2 id="recent-title">Recent</h2>
             <ChevronRight size={20} />
           </button>
-        ) : (
-          <h2 id="recent-title">Recent</h2>
-        )}
-        {loading ? (
-          <p className="quiet-empty" role="status">
-            <span className="spinner" /> Loading reports…
-          </p>
-        ) : recent.length ? (
           <div className="shelf">
             {recent.map((report) => (
               <button
@@ -155,10 +193,8 @@ export default function HomeDashboard({
               </button>
             ))}
           </div>
-        ) : (
-          <p className="quiet-empty">Reports you send will show up here.</p>
-        )}
-      </section>
+        </section>
+      )}
     </section>
   );
 }

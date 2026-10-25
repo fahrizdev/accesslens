@@ -36,7 +36,8 @@ import { preparePhoto as resizePhoto } from "./photos";
 import AreaPicker from "./components/AreaPicker";
 import Modal from "./components/Modal";
 import PhotoPicker from "./components/PhotoPicker";
-import { Launch, Welcome } from "./Brand";
+import { Launch } from "./Brand";
+import Welcome from "./Welcome";
 import HomeDashboard from "./Home";
 import ReportDetails, {
   emptyReportForm,
@@ -73,6 +74,10 @@ export default function App() {
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
+  // Set once the person has tried to send, so Curb can ask whether it went out.
+  const [sendAttempted, setSendAttempted] = useState(false);
+  // Entrance motion plays when the app first appears, not on every tab switch.
+  const [arriving, setArriving] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [areaModal, setAreaModal] = useState<"profile" | "report" | null>(null);
@@ -82,9 +87,22 @@ export default function App() {
   const gpsVersion = useRef(0);
   const reportVersion = useRef(0);
   const gpsController = useRef<AbortController | null>(null);
+  const categoryLabel =
+    category === "Other" && customCategory.trim()
+      ? customCategory.trim()
+      : category;
+  // A reopened report only counts as changed if its details differ.
+  const detailsDirty =
+    view === "details" &&
+    (current
+      ? image !== current.image ||
+        note !== current.note ||
+        place !== current.place ||
+        categoryLabel !== current.category
+      : !!(image || note || place));
   const unsavedChanges =
     hasUnsaved ||
-    (view === "details" && !!(image || note || place)) ||
+    detailsDirty ||
     (view === "review" && summary !== current?.summary);
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
@@ -122,6 +140,13 @@ export default function App() {
     imageVersion.current++;
     setProcessing(false);
   }, [view]);
+  useEffect(() => setSendAttempted(false), [current?.id]);
+  useEffect(() => {
+    if (!welcomed) return;
+    setArriving(true);
+    const timer = window.setTimeout(() => setArriving(false), 1600);
+    return () => clearTimeout(timer);
+  }, [welcomed]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(""), 4000);
@@ -184,8 +209,7 @@ export default function App() {
   }
   function navigate(next: View) {
     if (
-      view === "details" &&
-      (image || note || place) &&
+      detailsDirty &&
       !window.confirm(
         "Leave this draft? You’ll lose these changes. Your saved reports will stay here.",
       )
@@ -279,7 +303,13 @@ export default function App() {
     const version = reportVersion.current;
     setCurrent(updated);
     if ((await persist(updated)) && version === reportVersion.current) {
-      setToast(`Follow-up updated: ${followUpLabels[status]}.`);
+      setToast(
+        status === "sent"
+          ? "Sent. It’s under Waiting in Reports."
+          : status === "resolved"
+            ? "Marked resolved. Nice work."
+            : `Updated: ${followUpLabels[status]}.`,
+      );
     }
   }
   async function generate(event: FormEvent) {
@@ -292,10 +322,7 @@ export default function App() {
       setError("Wait for the location check to finish.");
       return;
     }
-    const label =
-      category === "Other" && customCategory.trim()
-        ? customCategory.trim()
-        : category;
+    const label = categoryLabel;
     const previous = current ? { ...current, summary } : null;
     const report = createDraft(
       {
@@ -389,11 +416,7 @@ export default function App() {
         title: `Curb: ${report.category}`,
         text: summary,
       });
-      if (version !== reportVersion.current) return;
-      if ((report.followUp || "not-sent") === "not-sent")
-        await updateFollowUp("sent");
-      if (version === reportVersion.current)
-        setToast("Report sent. Find it under Waiting in Reports.");
+      if (version === reportVersion.current) setSendAttempted(true);
     } catch (e) {
       if (
         version === reportVersion.current &&
@@ -404,9 +427,22 @@ export default function App() {
       setSharing(false);
     }
   }
+  async function openOfficialPage() {
+    const version = reportVersion.current;
+    saveReview();
+    setSendAttempted(true);
+    try {
+      await navigator.clipboard.writeText(summary);
+      if (version === reportVersion.current)
+        setToast("Message copied. Paste it into their form.");
+    } catch {
+      // The form still opens; the message can be copied by hand.
+    }
+  }
   // Without a share sheet that carries photos, hand over both pieces instead.
   async function copyAndSavePhoto(report: BarrierReport, version: number) {
     if (report.image) downloadPhoto(report);
+    setSendAttempted(true);
     try {
       await navigator.clipboard.writeText(summary);
       if (version === reportVersion.current)
@@ -446,7 +482,11 @@ export default function App() {
     return (
       <>
         <Welcome
-          onContinue={() => {
+          onFinish={(chosen) => {
+            if (chosen) {
+              rememberArea(chosen);
+              setReportArea(chosen);
+            }
             writePreference(WELCOME_KEY, true);
             setWelcomed(true);
           }}
@@ -456,7 +496,7 @@ export default function App() {
     );
   return (
     <>
-      <div className={`app-shell view-${view}`}>
+      <div className={`app-shell view-${view} ${arriving ? "arriving" : ""}`}>
         <a className="skip-link" href="#main">
           Skip to content
         </a>
@@ -467,10 +507,12 @@ export default function App() {
               loading={loading}
               processing={processing}
               error={error}
+              area={area}
               headingRef={heading}
               onReport={newReport}
               onReports={() => navigate("reports")}
               onProfile={() => navigate("settings")}
+              onArea={() => setAreaModal("profile")}
               onOpenReport={openReport}
             />
           )}
@@ -501,6 +543,7 @@ export default function App() {
               summary={summary}
               reportArea={reportArea}
               sharing={sharing}
+              sendAttempted={sendAttempted}
               error={error}
               heading={heading}
               sendPanel={sendPanel}
@@ -512,6 +555,8 @@ export default function App() {
                 setView("details");
               }}
               send={share}
+              onOfficialPage={() => void openOfficialPage()}
+              dismissSendCheck={() => setSendAttempted(false)}
               updateFollowUp={updateFollowUp}
               deleteCurrent={() => setConfirmation("report")}
             />

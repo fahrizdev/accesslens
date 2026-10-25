@@ -41,14 +41,16 @@ export default function SettingsView({
         <p className="muted">{area?.label || "Choose where you report"}</p>
       </div>
 
-      <div className="stat-row enter" style={{ animationDelay: "60ms" }}>
-        {stats.map(({ value, label }) => (
-          <div key={label}>
-            <b>{value}</b>
-            <small>{label}</small>
-          </div>
-        ))}
-      </div>
+      {reports.length > 0 && (
+        <div className="stat-row enter" style={{ animationDelay: "60ms" }}>
+          {stats.map(({ value, label }) => (
+            <div key={label}>
+              <b>{value}</b>
+              <small>{label}</small>
+            </div>
+          ))}
+        </div>
+      )}
 
       <section
         className="settings-section enter"

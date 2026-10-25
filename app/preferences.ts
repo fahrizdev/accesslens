@@ -2,6 +2,7 @@ import { normalizeArea } from "./area.ts";
 
 export const AREA_KEY = "accesslens-area";
 export const WELCOME_KEY = "curb-welcomed-v1";
+export const LAUNCH_KEY = "curb-launch-day";
 
 export function readPreference(key: string): unknown {
   try {

@@ -1,5 +1,11 @@
 import type { RefObject } from "react";
-import { ArrowUpRight, ChevronLeft, Send, Trash2 } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  Trash2,
+} from "lucide-react";
 import {
   followUpLabels,
   type BarrierReport,
@@ -7,11 +13,22 @@ import {
 } from "../reports";
 import { officialContactUrl, type Area } from "../area";
 import { ReportThumb } from "../Home";
+
+// "Pramila Jayapal" -> "Rep. Jayapal", so the button says exactly who it reaches.
+export function repTitle(name: string) {
+  const parts = name
+    .replace(/,?\s+(jr\.?|sr\.?|ii|iii|iv)$/i, "")
+    .trim()
+    .split(/\s+/);
+  return `Rep. ${parts[parts.length - 1]}`;
+}
+
 type Props = {
   current: BarrierReport;
   summary: string;
   reportArea: Area | null;
   sharing: boolean;
+  sendAttempted: boolean;
   error: string;
   heading: RefObject<HTMLHeadingElement | null>;
   sendPanel: RefObject<HTMLDivElement | null>;
@@ -20,6 +37,8 @@ type Props = {
   chooseArea: () => void;
   onBack: () => void;
   send: () => Promise<void>;
+  onOfficialPage: () => void;
+  dismissSendCheck: () => void;
   updateFollowUp: (value: FollowUpStatus) => Promise<void>;
   deleteCurrent: () => void;
 };
@@ -28,6 +47,7 @@ export default function ReportReview({
   summary,
   reportArea,
   sharing,
+  sendAttempted,
   error,
   heading,
   sendPanel,
@@ -36,11 +56,14 @@ export default function ReportReview({
   chooseArea,
   onBack,
   send,
+  onOfficialPage,
+  dismissSendCheck,
   updateFollowUp,
   deleteCurrent,
 }: Props) {
   const recipient = reportArea?.representative;
   const followUp = current.followUp || "not-sent";
+  const askIfSent = sendAttempted && followUp === "not-sent";
   return (
     <section className="flow-view">
       <header className="nav-bar">
@@ -60,12 +83,18 @@ export default function ReportReview({
       </header>
       <div className="flow-body">
         <div className="grouped compose enter">
-          <div className="compose-to">
+          <button
+            className={`compose-to ${recipient ? "" : "needs-recipient"}`}
+            onClick={chooseArea}
+          >
             <span className="muted">To:</span>
-            <button onClick={chooseArea}>
-              {recipient || "Choose a representative"}
-            </button>
-          </div>
+            <span className="compose-recipient">
+              {recipient
+                ? `${recipient}${reportArea?.district ? ` · ${reportArea.district}` : ""}`
+                : "Choose who to send it to"}
+            </span>
+            <ChevronRight size={16} className="chevron" />
+          </button>
           <label className="sr-only" htmlFor="report-summary">
             Message
           </label>
@@ -89,11 +118,12 @@ export default function ReportReview({
             </span>
           </div>
         </div>
-        <p className="group-footer enter" style={{ animationDelay: "80ms" }}>
+        <p className="group-footer">
           Tap the message to make changes before you send.
         </p>
         {followUp !== "not-sent" && (
           <p className="status-line">
+            <span className="status-dot" aria-hidden="true" />
             {followUpLabels[followUp]}
             {followUp === "resolved" ? (
               <button onClick={() => void updateFollowUp("waiting")}>
@@ -112,36 +142,51 @@ export default function ReportReview({
           </p>
         )}
       </div>
-      <div
-        className="flow-footer send-footer enter"
-        ref={sendPanel}
-        style={{ animationDelay: "140ms" }}
-      >
-        <button
-          className="button-primary full"
-          onClick={() => void send()}
-          disabled={sharing || !summary.trim()}
-        >
-          <Send size={18} />
-          {sharing ? "Opening…" : "Send report"}
-        </button>
-        {recipient && (
-          <a
-            className="text-link"
-            href={officialContactUrl(reportArea?.contactUrl)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Use the official contact page instead <ArrowUpRight size={15} />
-          </a>
-        )}
-        {followUp === "not-sent" && (
-          <button
-            className="text-link quiet"
-            onClick={() => void updateFollowUp("sent")}
-          >
-            Already sent it? Mark as sent
-          </button>
+      <div className="flow-footer send-footer" ref={sendPanel}>
+        {askIfSent ? (
+          <div className="sent-check" role="group" aria-labelledby="sent-q">
+            <b id="sent-q">
+              Did it reach {recipient ? repTitle(recipient) : "them"}?
+            </b>
+            <p>We’ll keep it under Waiting until you hear back.</p>
+            <div className="sent-check-actions">
+              <button className="button-secondary" onClick={dismissSendCheck}>
+                Not yet
+              </button>
+              <button
+                className="button-primary"
+                onClick={() => void updateFollowUp("sent")}
+              >
+                Yes, it’s sent
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <button
+              className="button-primary full"
+              onClick={() => void send()}
+              disabled={sharing || !summary.trim()}
+            >
+              <Send size={18} />
+              {sharing
+                ? "Opening…"
+                : recipient
+                  ? `Send to ${repTitle(recipient)}`
+                  : "Send report"}
+            </button>
+            {recipient && (
+              <a
+                className="text-link"
+                href={officialContactUrl(reportArea?.contactUrl)}
+                target="_blank"
+                rel="noreferrer"
+                onClick={onOfficialPage}
+              >
+                Use their official contact form <ArrowUpRight size={15} />
+              </a>
+            )}
+          </>
         )}
       </div>
     </section>
