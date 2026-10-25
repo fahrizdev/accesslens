@@ -1,0 +1,671 @@
+/* Responsive layouts */
+@media (max-width: 1000px) and (min-width: 701px) {
+  .topbar {
+    padding: 0 30px;
+  }
+  .details-layout {
+    gap: 25px;
+  }
+  .review-layout {
+    gap: 20px;
+  }
+  .send-panel {
+    padding: 20px;
+  }
+  .dashboard-top {
+    grid-template-columns: 1.4fr 1fr;
+  }
+  .report-launch {
+    gap: 15px;
+    padding: 24px;
+  }
+  .report-launch-icon {
+    height: 50px;
+    width: 50px;
+    border-radius: 16px;
+  }
+  .report-launch strong {
+    font-size: 21px;
+  }
+  .report-launch-copy > span {
+    font-size: 12px;
+  }
+}
+@media (max-width: 700px) {
+  .topbar {
+    height: 78px;
+    padding: 0 24px;
+    padding-top: env(safe-area-inset-top);
+  }
+  .brand {
+    font-size: 22px;
+    gap: 7px;
+  }
+  .brand .lens-mark {
+    height: 35px;
+    width: 35px;
+  }
+  .header-nav button:first-child {
+    display: none;
+  }
+  .header-nav .settings-button {
+    height: 37px;
+    width: 37px;
+  }
+  .main-content {
+    padding: 15px 23px 105px;
+  }
+  .app-footer {
+    display: none;
+  }
+  .button-primary,
+  .button-secondary {
+    min-height: 53px;
+    padding: 15px 21px;
+  }
+  .mobile-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffffef;
+    backdrop-filter: blur(20px);
+    border-top: 1px solid #f0e9f4;
+    padding: 10px 18px max(14px, env(safe-area-inset-bottom));
+    z-index: 20;
+    padding-top: 14px;
+  }
+  .mobile-nav > button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 78px;
+    font-size: 12px;
+    color: #75667f;
+    gap: 6px;
+    min-height: 40px;
+  }
+  .toast {
+    bottom: 100px;
+    border-radius: 18px;
+    font-size: 12px;
+  }
+  .view-onboard .toast,
+  .view-photo .toast,
+  .view-details .toast {
+    bottom: 25px;
+  }
+  .onboarding {
+    padding: 0 24px 25px;
+    overflow: clip;
+  }
+  .onboard-header {
+    height: 76px;
+    padding-top: env(safe-area-inset-top);
+  }
+  .onboard-brand {
+    font-size: 20px;
+  }
+  .onboard-brand .lens-mark {
+    width: 31px;
+    height: 31px;
+  }
+  .setup-panel {
+    margin-top: 29px;
+    max-width: 440px;
+    min-height: calc(100dvh - 155px);
+    display: flex;
+    flex-direction: column;
+  }
+  .setup-art {
+    height: 96px;
+    margin: 0 0 24px;
+    flex-shrink: 0;
+  }
+  .setup-heading h1 {
+    font-size: 31px;
+    letter-spacing: -1.3px;
+  }
+  .setup-heading .eyebrow {
+    font-size: 12px;
+    margin-bottom: 13px;
+  }
+  .setup-heading p {
+    font-size: 13px;
+    margin-top: 13px;
+  }
+  .setup-heading {
+    margin-bottom: 29px;
+  }
+  .setup-form {
+    margin-top: 0;
+  }
+  .setup-form input {
+    font-size: 17px;
+    min-height: 59px;
+  }
+  .setup-form .contact-hint {
+    font-size: 12px;
+    margin: 0 9px;
+  }
+  .setup-actions {
+    margin-top: auto;
+    padding-top: 40px;
+  }
+  .setup-art-2 .setup-icon {
+    width: 72px;
+    height: 72px;
+  }
+  .setup-art-2 svg {
+    width: 35px;
+    height: 35px;
+  }
+  .ready-summary {
+    padding: 3px 16px;
+  }
+  .ready-summary > div {
+    gap: 12px;
+    padding: 21px 0;
+  }
+  .ready-summary b {
+    font-size: 13px;
+  }
+  .ready-summary p {
+    font-size: 12px;
+  }
+  .setup-assurance {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .page-intro h1 {
+    font-size: 35px;
+    letter-spacing: -1.6px;
+  }
+  .page-intro p {
+    font-size: 12px;
+    margin-top: 13px;
+    line-height: 1.8;
+  }
+  .eyebrow {
+    font-size: 12px;
+    margin-bottom: 13px;
+  }
+  .flow-top {
+    margin-bottom: 28px;
+  }
+  .flow-steps {
+    gap: 9px;
+  }
+  .flow-steps li {
+    font-size: 12px;
+    gap: 5px;
+  }
+  .flow-steps li > span {
+    width: 21px;
+    height: 21px;
+    font-size: 12px;
+  }
+  .back-button {
+    font-size: 12px;
+  }
+  .photo-stage {
+    height: 300px;
+    border-radius: 25px;
+  }
+  .photo-stage > span {
+    font-size: 12px;
+  }
+  .photo-buttons {
+    gap: 10px;
+    margin-top: 19px;
+  }
+  .photo-buttons .button-primary,
+  .photo-buttons .button-secondary {
+    font-size: 12px;
+    padding: 14px 10px;
+    gap: 7px;
+  }
+  .photo-buttons svg {
+    width: 16px;
+    height: 16px;
+  }
+  .privacy-caption {
+    font-size: 12px;
+    gap: 6px;
+    line-height: 1.7;
+  }
+  .details-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .details-photo-panel {
+    position: relative;
+    top: auto;
+  }
+  .details-photo-panel > img {
+    max-height: 250px;
+    height: 210px;
+  }
+  .review-layout {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+  .report-paper-header {
+    padding: 17px 20px;
+  }
+  .report-paper-content {
+    padding: 20px;
+  }
+  .review-photo {
+    height: 215px;
+  }
+  .summary-editor {
+    min-height: 320px;
+  }
+  .send-panel {
+    padding: 23px;
+  }
+  .review-view {
+    padding-bottom: 40px;
+  }
+  .send-panel > .eyebrow {
+    font-size: 12px;
+  }
+  .share-explainer {
+    font-size: 12px;
+  }
+  .mobile-share-dock {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 13px 20px max(16px, env(safe-area-inset-bottom));
+    background: #ffffffed;
+    backdrop-filter: blur(15px);
+    border-top: 1px solid #f0e6f5;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  .dock-recipient {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    padding: 0;
+  }
+  .dock-recipient > span {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: #75667f;
+  }
+  .dock-recipient > b {
+    display: block;
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: 500;
+    margin-top: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobile-share-dock > .button-primary {
+    font-size: 12px;
+    min-height: 47px;
+    padding: 13px 17px;
+  }
+  .reports-view,
+  .settings-view {
+    margin-top: 14px;
+  }
+  .reports-new {
+    margin-bottom: 24px;
+  }
+  .empty-state {
+    padding: 45px 20px;
+  }
+  .empty-state h2 {
+    font-size: 24px;
+  }
+  .empty-state p {
+    font-size: 12px;
+  }
+  .report-list-item {
+    gap: 13px;
+    padding: 12px;
+    border-radius: 20px;
+  }
+  .report-list-item > img,
+  .no-photo {
+    height: 67px;
+    width: 67px;
+    border-radius: 12px;
+  }
+  .report-list-item b {
+    font-size: 13px;
+  }
+  .report-list-item small {
+    font-size: 12px;
+  }
+  .report-list-item > span > span {
+    font-size: 12px;
+  }
+  .settings-group > button {
+    padding: 19px 17px;
+    gap: 12px;
+  }
+  .settings-group b {
+    font-size: 13px;
+  }
+  .settings-group small {
+    font-size: 12px;
+  }
+  .settings-representative {
+    padding: 18px;
+  }
+  .settings-icon {
+    height: 39px;
+    width: 39px;
+  }
+  .settings-icon svg {
+    height: 19px;
+    width: 19px;
+  }
+  .sheet {
+    margin: auto 0 0;
+    width: 100%;
+    max-width: none;
+    max-height: 92dvh;
+    border-radius: 30px 30px 0 0;
+  }
+  .sheet-inner {
+    padding: 25px 24px max(28px, env(safe-area-inset-bottom));
+  }
+  .sheet-heading h2 {
+    font-size: 23px;
+  }
+  .sheet-heading .icon-button {
+    height: 38px;
+    width: 38px;
+  }
+  .confirmation-actions .button-primary,
+  .confirmation-actions .button-secondary {
+    font-size: 12px;
+  }
+  .launch-mark {
+    width: 111px;
+    height: 111px;
+  }
+  .onboarding-step-2 .setup-panel {
+    margin-top: 28px;
+    min-height: calc(100dvh - 155px);
+  }
+  .onboarding-step-2 .setup-actions {
+    padding-top: 28px;
+  }
+  .onboarding-step-2 .setup-art {
+    height: 64px;
+  }
+  .area-method {
+    padding: 22px 16px;
+    gap: 11px;
+    border-radius: 20px;
+  }
+  .area-method b {
+    font-size: 13px;
+  }
+  .area-method small {
+    font-size: 12px;
+  }
+  .area-method-icon {
+    width: 33px;
+    height: 33px;
+  }
+  .area-methods {
+    gap: 11px;
+  }
+  .area-disclosure {
+    margin: 19px 9px 0;
+    font-size: 12px;
+  }
+  .area-entry-panel .field-label input {
+    font-size: 16px;
+  }
+  .area-back {
+    font-size: 12px;
+  }
+  .view-home .header-nav,
+  .view-reports .header-nav,
+  .view-settings .header-nav {
+    display: none;
+  }
+  .mobile-nav > button[aria-current="page"] {
+    color: #78548c;
+  }
+  .mobile-nav > button[aria-current="page"] > svg {
+    stroke-width: 2.2;
+  }
+  .dashboard {
+    padding: 15px 0 8px;
+  }
+  .dashboard-heading {
+    margin-bottom: 28px;
+    gap: 17px;
+  }
+  .dashboard-date {
+    margin-bottom: 15px;
+  }
+  .dashboard-heading h1 {
+    font-size: 40px;
+    line-height: 1.07;
+    letter-spacing: -1.9px;
+  }
+  .daylight-orb {
+    width: 61px;
+    height: 61px;
+  }
+  .daylight-orb > svg {
+    width: 26px;
+    height: 26px;
+  }
+  .dashboard-top {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .report-launch {
+    min-height: 141px;
+    padding: 23px 19px;
+    gap: 15px;
+    border-radius: 23px;
+  }
+  .report-launch-icon {
+    height: 50px;
+    width: 50px;
+    border-radius: 17px;
+  }
+  .report-launch-icon svg {
+    height: 27px;
+    width: 27px;
+  }
+  .report-launch strong {
+    font-size: 21px;
+  }
+  .report-launch-copy > span {
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .report-launch-arrow > svg {
+    width: 20px;
+    height: 20px;
+  }
+  .neighborhood-card {
+    padding: 19px 21px;
+    border-radius: 21px;
+  }
+  .neighborhood-label {
+    margin-bottom: 9px;
+    font-size: 12px;
+  }
+  .neighborhood-card > strong {
+    font-size: 18px;
+  }
+  .neighborhood-detail {
+    max-width: 80%;
+  }
+  .neighborhood-edit {
+    margin-top: 12px;
+    font-size: 12px;
+  }
+  .dashboard-reports {
+    margin-top: 27px;
+  }
+  .dashboard-section-heading {
+    margin-bottom: 14px;
+  }
+  .dashboard-section-heading h2 {
+    font-size: 18px;
+  }
+  .dashboard-section-heading > .text-button {
+    font-size: 12px;
+  }
+  .dashboard-empty {
+    padding: 26px 21px;
+    gap: 20px;
+    min-height: 137px;
+    border-radius: 21px;
+  }
+  .empty-report-lines {
+    height: 56px;
+    width: 46px;
+  }
+  .dashboard-empty h3 {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .empty-break {
+    display: initial;
+  }
+  .dashboard-local {
+    font-size: 12px;
+    margin-top: 14px;
+  }
+  .dashboard-report {
+    padding: 15px;
+    gap: 13px;
+  }
+  .dashboard-report > img,
+  .dashboard-report-placeholder {
+    height: 58px;
+    width: 58px;
+    border-radius: 11px;
+  }
+  .dashboard-report b {
+    font-size: 12px;
+  }
+  .dashboard-report small {
+    font-size: 12px;
+  }
+  .dashboard-empty p {
+    font-size: 12px;
+  }
+  .onboarding-step-2 .setup-heading {
+    margin-bottom: 26px;
+  }
+}
+@media (max-width: 370px) {
+  .main-content {
+    padding-left: 19px;
+    padding-right: 19px;
+  }
+  .onboarding {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .setup-heading h1 {
+    font-size: 28px;
+  }
+  .setup-heading p {
+    font-size: 12px;
+  }
+  .setup-progress span {
+    width: 19px;
+  }
+  .ready-summary {
+    padding: 2px 13px;
+  }
+  .ready-summary > div {
+    gap: 9px;
+  }
+  .ready-summary .text-button {
+    font-size: 12px;
+  }
+  .dashboard-heading h1 {
+    font-size: 34px;
+  }
+  .daylight-orb {
+    width: 49px;
+    height: 49px;
+  }
+  .daylight-orb > svg {
+    height: 23px;
+    width: 23px;
+  }
+  .report-launch {
+    padding: 21px 15px;
+    gap: 12px;
+  }
+  .report-launch-icon {
+    height: 43px;
+    width: 43px;
+    border-radius: 14px;
+  }
+  .report-launch strong {
+    font-size: 19px;
+  }
+  .report-launch-copy > span {
+    font-size: 12px;
+  }
+  .report-launch-arrow {
+    display: none;
+  }
+  .area-method {
+    padding: 20px 14px;
+  }
+  .area-method small {
+    font-size: 12px;
+  }
+  .neighborhood-card > strong {
+    font-size: 17px;
+    max-width: 100%;
+  }
+}
+@media (max-height: 740px) and (max-width: 700px) {
+  .setup-panel {
+    margin-top: 14px;
+  }
+  .setup-art {
+    height: 80px;
+    margin-bottom: 20px;
+  }
+  .setup-heading {
+    margin-bottom: 24px;
+  }
+  .setup-actions {
+    padding-top: 30px;
+  }
+  .onboarding-step-2 .setup-panel {
+    margin-top: 18px;
+  }
+  .area-method {
+    padding-top: 19px;
+    padding-bottom: 19px;
+  }
+  .onboarding-step-2 .setup-actions {
+    padding-top: 20px;
+  }
+}

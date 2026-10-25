@@ -22,7 +22,9 @@ export function LensMark({ className = "" }: { className?: string }) {
 
 export function Splash({ onContinue }: { onContinue: () => void }) {
   const [leaving, setLeaving] = useState(false);
-  const [buttonReady, setButtonReady] = useState(false);
+  const [buttonReady, setButtonReady] = useState(
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
   const exitTimer = useRef<number | undefined>(undefined);
   useEffect(() => {
     const reveal = window.setTimeout(() => setButtonReady(true), 1100);
@@ -44,13 +46,14 @@ export function Splash({ onContinue }: { onContinue: () => void }) {
 
   return (
     <div className={`launch-screen${leaving ? " launch-leaving" : ""}`}>
-      <div className="launch-center" role="img" aria-label="AccessLens">
+      <div className="launch-center" role="img" aria-label="Via">
         <LensMark className="launch-mark" />
+        <span className="launch-wordmark">Via</span>
       </div>
       {buttonReady && (
         <button
           className="launch-enter gradient-circle"
-          aria-label="Open AccessLens"
+          aria-label="Open Via"
           onClick={enterApp}
           disabled={leaving}
         >

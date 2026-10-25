@@ -1,61 +1,108 @@
-import { createServer } from 'node:http'
-import { readFile, access } from 'node:fs/promises'
-import { createReadStream } from 'node:fs'
-import { extname, resolve, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import areaHandler from './api/area.js'
+import { createServer } from "node:http";
+import { stat } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { extname, resolve, sep } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import areaHandler from "./api/area.js";
 
-const root = fileURLToPath(new URL('.', import.meta.url))
-const dist = resolve(root, 'dist')
-try {
-  const envText = await readFile(resolve(root, '.env.local'), 'utf8')
-  for (const line of envText.split(/\r?\n/)) {
-    const match = line.match(/^\s*OPENAI_API_KEY\s*=\s*(.*?)\s*$/)
-    if (match && !process.env.OPENAI_API_KEY) process.env.OPENAI_API_KEY = match[1].replace(/^(['"])(.*)\1$/, '$2')
-  }
-} catch {}
-const categories = ['Blocked curb ramp', 'Stairs-only entrance', 'Obstructed pathway', 'Uneven surface', 'Heavy or difficult door', 'Missing signage', 'Other']
-const mimeTypes = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.ico': 'image/x-icon' }
-function json(res, status, body) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); res.end(JSON.stringify(body)) }
-const server = createServer(async (req, res) => {
-  const url = new URL(req.url || '/', 'http://localhost')
-  if (url.pathname === '/api/area') return areaHandler(req, res)
-  if (url.pathname === '/api/status' && req.method === 'GET') return json(res, 200, { available: Boolean(process.env.OPENAI_API_KEY) })
-  if (url.pathname === '/api/analyze' && req.method === 'POST') {
-    // Server is loopback-only; reject cross-origin requests in browsers as an extra safeguard.
-    const origin = req.headers.origin
-    if (origin && origin !== `http://${req.headers.host}` && origin !== `https://${req.headers.host}`) return json(res, 403, { error: 'Request origin rejected.' })
-    if (!process.env.OPENAI_API_KEY) return json(res, 503, { error: 'GPT is not connected yet. Add an OpenAI API key to .env.local, then restart AccessLens.' })
-    let body = ''
+const defaultDist = fileURLToPath(new URL("./dist", import.meta.url));
+const mimeTypes = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".webmanifest": "application/manifest+json",
+};
+
+function json(res, status, body) {
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+  });
+  res.end(JSON.stringify(body));
+}
+
+export function createAppServer({ dist = defaultDist } = {}) {
+  dist = resolve(dist);
+  return createServer(async (req, res) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader(
+      "Permissions-Policy",
+      "geolocation=(self), camera=(self), microphone=()",
+    );
     try {
-      for await (const chunk of req) { body += chunk; if (body.length > 9_000_000) return json(res, 413, { error: 'That photo is too large to analyze. Choose a smaller photo.' }) }
-      const parsed = JSON.parse(body); const image = parsed?.image
-      if (typeof image !== 'string' || !/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(image) || image.length > 8_500_000) return json(res, 400, { error: 'Choose a valid JPG or PNG photo.' })
-      const response = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(60000), body: JSON.stringify({
-        model: 'gpt-6-luna', store: false,
-        input: [{ role: 'user', content: [{ type: 'input_text', text: 'Describe only visible physical details that may affect access along a public route. Do not infer a legal violation, disability, intent, or facts outside the image. If the image is unclear or shows no barrier, say so and select Other. Write a concise draft that the user must review.' }, { type: 'input_image', image_url: image, detail: 'high' }] }],
-        text: { format: { type: 'json_schema', name: 'accesslens_photo_draft', strict: true, schema: { type: 'object', additionalProperties: false, properties: { observation: { type: 'string' }, suggested_category: { type: 'string', enum: categories }, draft_description: { type: 'string' }, uncertainty: { type: 'string' } }, required: ['observation', 'suggested_category', 'draft_description', 'uncertainty'] } } },
-      }) })
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) return json(res, 502, { error: 'The OpenAI key was rejected. Check .env.local.' })
-        if (response.status === 429) return json(res, 502, { error: 'OpenAI rate limit or API balance reached. Check API billing and try again.' })
-        return json(res, 502, { error: 'OpenAI could not analyze this photo right now. Please try again.' })
+      const url = new URL(req.url || "/", "http://localhost");
+      if (url.pathname === "/api/area") return await areaHandler(req, res);
+      if (url.pathname.startsWith("/api/"))
+        return json(res, 404, { error: "Not found." });
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        res.setHeader("Allow", "GET, HEAD");
+        return json(res, 405, { error: "Use GET or HEAD for app files." });
       }
-      const result = await response.json(); const text = result.output_text || result.output?.flatMap((item) => item.content || []).find((item) => item.type === 'output_text')?.text
-      if (!text) return json(res, 502, { error: 'No draft was returned. Please try another photo.' })
-      let suggestion
-      try { suggestion = JSON.parse(text) } catch { return json(res, 502, { error: 'The returned draft could not be read. Please try again.' }) }
-      if (!categories.includes(suggestion.suggested_category)) suggestion.suggested_category = 'Other'
-      return json(res, 200, { suggestion })
-    } catch (error) { return json(res, 502, { error: error?.name === 'TimeoutError' ? 'Photo analysis took too long. Please try again.' : 'Could not analyze this photo. Please try again.' }) }
+      let requested;
+      try {
+        requested = decodeURIComponent(url.pathname);
+      } catch {
+        return json(res, 400, { error: "Bad path." });
+      }
+      if (requested.includes("\0"))
+        return json(res, 400, { error: "Bad path." });
+      const appRoute =
+        requested === "/" ||
+        requested === "/app" ||
+        requested.startsWith("/app/");
+      const file = resolve(dist, `.${appRoute ? "/index.html" : requested}`);
+      if (!file.startsWith(dist + sep))
+        return json(res, 400, { error: "Bad path." });
+      let info;
+      try {
+        info = await stat(file);
+      } catch (error) {
+        if (error.code !== "ENOENT" && error.code !== "ENOTDIR") throw error;
+        return json(res, appRoute ? 503 : 404, {
+          error: appRoute
+            ? "Build the app first with npm run build."
+            : "Not found.",
+        });
+      }
+      if (!info.isFile()) return json(res, 404, { error: "Not found." });
+      res.writeHead(200, {
+        "Content-Type": mimeTypes[extname(file)] || "application/octet-stream",
+        "Content-Length": info.size,
+        "Cache-Control": "no-cache",
+      });
+      if (req.method === "HEAD") return res.end();
+      const stream = createReadStream(file);
+      stream.on("error", () => res.destroy());
+      res.on("close", () => stream.destroy());
+      stream.pipe(res);
+    } catch {
+      if (res.headersSent) res.destroy();
+      else json(res, 500, { error: "Could not serve this request." });
+    }
+  });
+}
+
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+) {
+  const port = Number(process.env.PORT || 4173);
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new Error("PORT must be an integer between 0 and 65535.");
   }
-  if (url.pathname.startsWith('/api/')) return json(res, 404, { error: 'Not found' })
-  let requested
-  try { requested = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname) } catch { return json(res, 400, { error: 'Bad path' }) }
-  const file = resolve(dist, `.${requested}`)
-  if (!(file === dist || file.startsWith(dist + sep))) return json(res, 400, { error: 'Bad path' })
-  try { await access(file); res.writeHead(200, { 'Content-Type': mimeTypes[extname(file)] || 'application/octet-stream', 'X-Content-Type-Options': 'nosniff' }); createReadStream(file).pipe(res) }
-  catch { const index = resolve(dist, 'index.html'); try { await access(index); res.writeHead(200, { 'Content-Type': mimeTypes['.html'], 'X-Content-Type-Options': 'nosniff' }); createReadStream(index).pipe(res) } catch { json(res, 503, { error: 'Build the app first with npm run build.' }) } }
-})
-const port = Number(process.env.PORT || 4173)
-server.listen(port, '127.0.0.1', () => console.log(`AccessLens ready on this computer at port ${port}`))
+  const server = createAppServer();
+  server.on("error", (error) => {
+    console.error(`Could not start Via: ${error.message}`);
+    process.exitCode = 1;
+  });
+  server.listen(port, "127.0.0.1", () => {
+    console.log(`Via running at http://localhost:${server.address().port}`);
+  });
+}

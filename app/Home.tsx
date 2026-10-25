@@ -11,7 +11,12 @@ import {
   Sunrise,
   Sunset,
 } from "lucide-react";
-import type { Area, BarrierReport } from "./data";
+import {
+  displayDate,
+  reportStatusLabel,
+  type Area,
+  type BarrierReport,
+} from "./reports";
 import { greetingFor } from "./greeting";
 
 type Props = {
@@ -97,7 +102,7 @@ export default function HomeDashboard({
             <span id="report-launch-hint">
               Add a photo of an access barrier.
               <br />
-              We’ll help with the details.
+              Then add where it is.
             </span>
           </span>
           <span className="report-launch-arrow">
@@ -156,12 +161,9 @@ export default function HomeDashboard({
                   <b>{report.category}</b>
                   <small>{report.place}</small>
                   <span className="dashboard-report-meta">
-                    {new Date(report.created).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {displayDate(report.created)}
                     <i />
-                    {report.status === "Shared" ? "Shared to an app" : "Draft"}
+                    {reportStatusLabel(report)}
                   </span>
                 </span>
                 <ChevronRight size={17} />
@@ -176,14 +178,15 @@ export default function HomeDashboard({
             <div>
               <h3>No reports yet</h3>
               <p>
-                Reports you create will be saved here,
+                Your reports show up here,
                 <br className="empty-break" /> on this device.
               </p>
             </div>
           </div>
         )}
         <p className="dashboard-local">
-          Only you can see the reports saved on this device.
+          Reports are saved in this browser. Sharing opens another app; you
+          choose whether to send.
         </p>
       </section>
     </section>

@@ -1,4 +1,3 @@
-// Free lookup using official government sources. Never log addresses or coordinates.
 let directoryCache = { xml: "", until: 0 };
 const tag = (xml, name) =>
   (
@@ -21,12 +20,14 @@ export function parseArea(geographies, memberXml = "") {
     geographies["Incorporated Places"]?.[0] ||
     geographies["Census Designated Places"]?.[0] ||
     geographies.Counties?.[0];
-  // Pin to the serving 119th Congress; Current_Current already contains future 120th boundaries.
   const district = geographies["119th Congressional Districts"]?.[0];
   const stateCode = state.STUSAB;
-  const number = district ? Number(district.BASENAME) : null;
+  const number =
+    district && /^\d{1,2}$/.test(district.BASENAME)
+      ? Number(district.BASENAME)
+      : null;
   const districtId =
-    number !== null && Number.isFinite(number)
+    number !== null && /^[A-Z]{2}$/.test(stateCode)
       ? `${stateCode}${String(number).padStart(2, "0")}`
       : "";
   const member = [...memberXml.matchAll(/<member>([\s\S]*?)<\/member>/g)]
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   const send = (status, body) => {
     res.statusCode = status;
-    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.end(JSON.stringify(body));
   };
   if (req.method !== "POST") {
@@ -62,7 +63,11 @@ export default async function handler(req, res) {
   }
   if (req.headers.origin) {
     try {
-      if (new URL(req.headers.origin).host !== req.headers.host)
+      const origin = new URL(req.headers.origin);
+      if (
+        !["http:", "https:"].includes(origin.protocol) ||
+        origin.host !== req.headers.host
+      )
         return send(403, { error: "Request origin rejected." });
     } catch {
       return send(403, { error: "Request origin rejected." });
@@ -71,20 +76,24 @@ export default async function handler(req, res) {
   try {
     let payload = req.body;
     if (payload === undefined) {
-      let body = "";
+      const chunks = [];
+      let bytes = 0;
       for await (const chunk of req) {
-        body += chunk;
-        if (body.length > 4096)
-          return send(413, { error: "Address is too long." });
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        bytes += buffer.byteLength;
+        if (bytes > 4096) return send(413, { error: "Address is too long." });
+        chunks.push(buffer);
       }
-      payload = JSON.parse(body);
+      payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
     } else if (typeof payload === "string") {
-      if (payload.length > 4096)
+      if (Buffer.byteLength(payload, "utf8") > 4096)
         return send(413, { error: "Address is too long." });
       payload = JSON.parse(payload);
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload))
       return send(400, { error: "Enter an address or valid coordinates." });
+    if (Buffer.byteLength(JSON.stringify(payload), "utf8") > 4096)
+      return send(413, { error: "Address is too long." });
     const { address, lat, lng } = payload;
     const params = new URLSearchParams({
       benchmark: "Public_AR_Current",
@@ -148,7 +157,7 @@ export default async function handler(req, res) {
             until: Date.now() + 3600000,
           };
       } catch {
-        /* District can still be shown when the directory is offline. */
+        // A directory outage must not prevent saving a usable area.
       }
     }
     return send(200, { area: parseArea(geographies, directoryCache.xml) });
@@ -157,7 +166,7 @@ export default async function handler(req, res) {
       error:
         error instanceof SyntaxError
           ? "Could not read this request."
-          : "Location lookup is taking a break. Enter your town below to keep going.",
+          : "Location lookup isn’t working right now. Enter your town below to keep going.",
     });
   }
 }

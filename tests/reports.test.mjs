@@ -57,17 +57,15 @@ await new Promise((resolve, reject) => {
   tx.onerror = () => reject(tx.error);
 });
 seed.close();
-const {
-  loadReports,
-  saveReport,
-  deleteReport,
-  buildSummary,
-  photoFile,
-  downloadReport,
-  retargetSummary,
-} = await import("../src/data.ts");
+const { buildSummary, retargetSummary, followUpLabels } = await import(
+  "../app/reports.ts"
+);
+const { loadReports, saveReport, deleteReport } = await import(
+  "../app/reportStorage.ts"
+);
+const { photoFile, downloadReport } = await import("../app/reportFiles.ts");
 
-test("upgrade preserves photos as independent reports and keeps original records intact", async () => {
+test("imports old photos as reports and keeps the originals", async () => {
   const reports = await loadReports();
   assert.equal(reports.length, 3);
   assert.equal(
@@ -90,7 +88,7 @@ test("upgrade preserves photos as independent reports and keeps original records
   assert.equal(original.observations.length, 2);
   db.close();
 });
-test("deleted imported reports do not reappear and repeated loads do not duplicate data", async () => {
+test("deleted imports stay deleted and reloads don’t make copies", async () => {
   await deleteReport("imported-old-route-a");
   assert.equal((await loadReports()).length, 2);
   assert.equal((await loadReports()).length, 2);
@@ -99,7 +97,7 @@ test("deleted imported reports do not reappear and repeated loads do not duplica
     false,
   );
 });
-test("saves editable brief reports and updates a record rather than duplicating it", async () => {
+test("editing a report updates the same saved record", async () => {
   const report = {
     id: "new-report",
     category: "Blocked curb ramp",
@@ -109,14 +107,22 @@ test("saves editable brief reports and updates a record rather than duplicating 
     created: new Date().toISOString(),
     summary: "My draft.",
     status: "Draft",
+    followUp: "waiting",
   };
   await saveReport(report);
   await saveReport({ ...report, summary: "My edited draft." });
   const matches = (await loadReports()).filter((r) => r.id === "new-report");
   assert.equal(matches.length, 1);
   assert.equal(matches[0].summary, "My edited draft.");
+  assert.equal(matches[0].followUp, "waiting");
 });
-test("brief message includes only provided facts, place, and optional coordinates", () => {
+test("follow-up labels describe user-reported outcomes", () => {
+  assert.equal(followUpLabels["not-sent"], "Not sent");
+  assert.equal(followUpLabels.sent, "Marked sent");
+  assert.equal(followUpLabels.referred, "Referred elsewhere");
+  assert.equal(followUpLabels.resolved, "Marked resolved");
+});
+test("report text uses the supplied details", () => {
   const message = buildSummary(
     "Blocked curb ramp",
     "Public library",
@@ -131,14 +137,14 @@ test("brief message includes only provided facts, place, and optional coordinate
   assert.doesNotMatch(message, /ADA violation|legally|detected by AI/);
   assert.doesNotMatch(buildSummary("Other", "Park", "", ""), /\(\)/);
 });
-test("photo attachment contains the image bytes and rejects unsafe image URLs", async () => {
+test("makes a photo attachment and rejects unsafe URLs", async () => {
   const file = photoFile({ image: "data:image/jpeg;base64,YQ==" });
   assert.equal(file.type, "image/jpeg");
-  assert.equal(file.name, "accesslens-photo.jpg");
+  assert.equal(file.name, "via-photo.jpg");
   assert.equal(await file.text(), "a");
   assert.equal(photoFile({ image: "javascript:alert(1)" }), null);
 });
-test("new report includes saved name and reply contact without changing old drafts", async () => {
+test("reports keep the contact details they were created with", async () => {
   const sender = { name: "Sam Student", email: "sam@example.com" };
   const summary = buildSummary(
     "Blocked curb ramp",
@@ -170,7 +176,7 @@ test("new report includes saved name and reply contact without changing old draf
   assert.equal(saved.sender.name, "Sam Student");
   assert.ok(saved.summary.endsWith("Sam Student\nsam@example.com"));
 });
-test("changing representative updates only the generated greeting and preserves edits and signature", () => {
+test("changing the representative keeps the rest of the message", () => {
   const edited =
     "Hello Representative Old Member,\n\nMy edited text.\n\nSam\nsam@example.com";
   assert.equal(
@@ -220,6 +226,8 @@ test("download embeds the photo and escapes user text", async () => {
     });
     const html = await blob.text();
     assert.equal(clicked, true);
+    assert.match(html, /<title>Via —/);
+    assert.doesNotMatch(html, /AccessLens/);
     assert.match(html, /src="data:image\/jpeg;base64,YQ=="/);
     assert.match(html, /&lt;script&gt;/);
     assert.doesNotMatch(html, /<script>|<img src=x/);

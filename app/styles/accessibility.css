@@ -1,0 +1,67 @@
+/* Accessibility and printing */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (forced-colors: active) {
+  .page-intro h1 > span {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+  .lens-aura {
+    background: CanvasText;
+    filter: none;
+  }
+  .lens-mark {
+    color: Canvas;
+  }
+  .gradient-circle {
+    background: ButtonFace;
+    color: ButtonText;
+    border: 1px solid ButtonText;
+  }
+  .category-options .chosen {
+    outline: 2px solid Highlight;
+  }
+  .report-launch {
+    border: 1px solid ButtonText;
+  }
+}
+@media print {
+  .topbar,
+  .app-footer,
+  .mobile-nav,
+  .mobile-share-dock,
+  .flow-top,
+  .send-panel,
+  .toast {
+    display: none !important;
+  }
+  .main-content {
+    padding: 0;
+  }
+  .review-layout {
+    display: block;
+  }
+  .report-paper {
+    border: 0;
+    box-shadow: none;
+  }
+  .summary-editor {
+    border: 0;
+    background: white;
+    min-height: 500px;
+  }
+  .report-paper-header {
+    padding-left: 0;
+  }
+  .review-photo {
+    object-fit: contain;
+    height: 240px;
+  }
+}
