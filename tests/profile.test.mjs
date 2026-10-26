@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeProfile, signature, validEmail } from "../app/profile.ts";
+import { normalizeProfile, signature, validEmail } from "../src/profile.ts";
 
-test("cleans up saved contact details", () => {
+test("contact details normalize safely, including missing or old preferences", () => {
   assert.deepEqual(normalizeProfile(null), { name: "", email: "" });
   assert.deepEqual(normalizeProfile({ name: 42, email: {} }), {
     name: "",
@@ -22,7 +22,7 @@ test("cleans up saved contact details", () => {
   assert.equal(normalizeProfile({ name: "x".repeat(200) }).name.length, 80);
 });
 
-test("checks email format", () => {
+test("email validation checks format without pretending to verify an inbox", () => {
   for (const email of [
     "student@example.com",
     "sam+access@school.edu",
@@ -40,7 +40,7 @@ test("checks email format", () => {
     assert.equal(validEmail(email), false);
 });
 
-test("leaves invalid emails out of signatures", () => {
+test("signature includes only supplied details and omits invalid emails", () => {
   assert.equal(
     signature({ name: "Sam", email: "sam@example.com" }),
     "Sam\nsam@example.com",

@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { greetingFor } from "../app/greeting.ts";
+import { greetingFor } from "../src/greeting.ts";
 
-test("greeting changes at the right local hour", () => {
+test("greetings follow the viewer's local time and handle each boundary", () => {
   for (const [hour, minute, period, text] of [
     [4, 59, "night", "Welcome back"],
     [5, 0, "morning", "Good morning"],
